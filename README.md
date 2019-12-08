@@ -8,4 +8,4 @@ r (right), l (left), u (up), d (down), f (front), b (back), x (rotate around the
 By default any given turn will be clockwise.
 For a given movement "a" if you write "a'" it will be inverted, if you write "a2" the movement will be repeated 2 times.
 
-You can do a sequence of movements at once by writing them in seccecion like this: r'l2ul'ru'f2 
+You can do a sequence of movements at once by writing them in succecion like this: r'l2ul'ru'f2 
