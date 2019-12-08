@@ -2,7 +2,11 @@ import numpy as np
 
 def invertMov(mov):
     """
-    O(1)
+    str -> str
+    OBJ: returns the inverted movement as the one given
+    R -> R'
+    U2 -> U2
+    F' -> F
     """
     result = mov
     if mov[-1] == "'":
@@ -13,7 +17,9 @@ def invertMov(mov):
 
 def groupAlg(alg):
     """
-    O(n)
+    str -> list[str]
+    OBJ: groups the movements in an algorithm given by a string
+    RL'F2 -> [R,L',F2]
     """
     result=[]
     item=[]
@@ -28,7 +34,9 @@ def groupAlg(alg):
 
 def invertAlg(alg):
     """
-    O(n)
+    str -> str
+    OBJ: returns the inverse algorithm
+    RU'F2 -> F2UR'
     """
     alg = groupAlg(alg)
     stack = []
@@ -43,7 +51,11 @@ def invertAlg(alg):
 
 def turnMov(mov, turn):
     """
-    O(1)
+    str, str -> str
+    OBJ: returns the movement given a turn of the entire Cube
+    U,x -> B
+    F',z' -> F'
+    U2,y2 -> D2
     """
     transMap = {}
     if turn[0] == 'x':
@@ -130,7 +142,8 @@ def turnMov(mov, turn):
 
 def turnAlg(alg):
     """
-    O(n^2)
+    str -> str
+    OBJ: turns an algithm given a turn of the entire cube
     """
     transStack = []
     movStack = []
@@ -168,9 +181,13 @@ def turnAlg(alg):
     while len(revStack) != 0:
         auxAlg += revStack.pop()
 
-    return alg
+    return auxAlgs
 
 def transMiddle(alg):
+    """
+    str -> str
+    OBJ: subsitutes parts of an algorithm to get slice movements
+    """
     auxStr = alg
     auxStr = auxStr.replace("RL'","Mx")
     auxStr = auxStr.replace("L'R","Mx")
@@ -188,20 +205,3 @@ def transMiddle(alg):
     auxStr = auxStr.replace("BF'","S'z")
 
     return auxStr
-
-
-
-
-def main():
-    strIn = input("introduce an algorithm to invert: ")
-    strIn = strIn.replace(" ", "")
-    strIn = strIn.replace("(", "")
-    strIn = strIn.replace(")", "")
-    print(invertAlg(strIn))
-    #for turn in ('x', 'y', 'z'):
-    #    for mov in ('R','L','U','D','F','B'):
-    #        print(turn + mov + "-" + turnMov(mov,turn))
-    #print(turnAlg("RxRyRz"))
-
-if __name__=="__main__":
-    main()
