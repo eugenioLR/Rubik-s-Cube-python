@@ -65,14 +65,14 @@ class Cube:
         int -> noReturn
         OBJ: rotates the cube around the z axis
         """
-        self.faces[4] = mM.turnM(self.faces[4],-times)
-        self.faces[2] = mM.turnM(self.faces[2],times)
+        self.faces[4] = mM.turnM(self.faces[4],times)
+        self.faces[2] = mM.turnM(self.faces[2],-times)
         for i in range(times%4):
-            self.faces[0] = mM.turnM(self.faces[0],1)
-            self.faces[1] = mM.turnM(self.faces[1],1)
-            self.faces[3] = mM.turnM(self.faces[3],1)
-            self.faces[5] = mM.turnM(self.faces[5],1)
-            turned = (self.faces[3],self.faces[5],self.faces[1],self.faces[0])
+            self.faces[0] = mM.turnM(self.faces[0],-1)
+            self.faces[1] = mM.turnM(self.faces[1],-1)
+            self.faces[3] = mM.turnM(self.faces[3],-1)
+            self.faces[5] = mM.turnM(self.faces[5],-1)
+            turned = (self.faces[1],self.faces[0],self.faces[3],self.faces[5])
             (self.faces[0],self.faces[3],self.faces[5],self.faces[1]) = turned
 
     def turn(self, type):
@@ -102,13 +102,13 @@ class Cube:
             self.Uturn(times)
             self.Xturn(1)
         if type[0].upper() == 'R':
-            self.Zturn(1)
-            self.Uturn(times)
             self.Zturn(-1)
+            self.Uturn(times)
+            self.Zturn(1)
         if type[0].upper() == 'L':
-            self.Zturn(-1)
-            self.Uturn(times)
             self.Zturn(1)
+            self.Uturn(times)
+            self.Zturn(-1)
         if type[0].upper() == 'X':
             self.Xturn(times)
         if type[0].upper() == 'Y':
@@ -132,15 +132,14 @@ class Cube:
         """
         solved = True
         i = j = k = 0
-        aux = -1
-        while i < self.size and solved:
+        while i < len(self.faces) and solved:
+            aux = self.faces[i][0][0]
+            j = 0
             while j < len(self.faces[i]) and solved:
+                k = 0
                 while k < len(self.faces[i][j]) and solved:
-                    if aux != -1:
-                        solved = self.faces[i][j][k] == aux
-                    aux = self.faces[i][j][k]
+                    solved = self.faces[i][j][k] == aux
                     k+=1
-                aux = -1
                 j+=1
             i+=1
         return solved
@@ -182,5 +181,58 @@ class Cube:
             for j in i:
                 result += str(j) + " "
             result += "\n"
+
+        return result
+
+    def toStringColor(self):
+        """
+        str -> str
+        OBJ: returns a text representation of the cube
+        """
+        colorMap = {
+            0:'\033[48;2;245;245;245m ', # rgb(F5,F5,F5) = (almost)white
+            1:'\033[48;2;178;0;0m ',     # rgb(B9,00,00) = red
+            2:'\033[48;2;0;69;172m ',    # rgb(00,45,AD) = blue
+            3:'\033[48;2;255;89;0m ',    # rgb(FF,59,00) = orange
+            4:'\033[48;2;0;155;72m ',    # rgb(00,9B,48) = green
+            5:'\033[48;2;213;255;0m '    # rgb(FF,D5,00) = yellow
+        }
+
+
+        result = ""
+
+        #result += "size:" + str(self.size) + "\n"
+
+        facesStr = []
+
+        # face 0
+        for i in self.faces[0]:
+            result += " " * (2*(self.size+1))
+            for j in i:
+                result += colorMap[j] + " "
+            result += "\033[48;2;0;0;0m\n"
+
+        result += '\n'
+
+        # faces 1-4 in the same line
+        for i in range(self.size):
+            facesStr.append([])
+
+        for i in range(1, len(self.faces)-1):
+            for j in range(len(self.faces[i])):
+                for k in range(len(self.faces[i][j])):
+                    facesStr[j] += colorMap[self.faces[i][j][k]] + " "
+                facesStr[j] += "\033[48;2;0;0;0m  "
+        for i in facesStr:
+            result += "".join(i) + "\033[48;2;0;0;0m\n"
+
+        result += '\n'
+
+        # face 5
+        for i in self.faces[5]:
+            result += " " * (2*(self.size + 1))
+            for j in i:
+                result += colorMap[j] + " "
+            result += "\033[48;2;0;0;0m\n"
 
         return result

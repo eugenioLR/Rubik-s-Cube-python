@@ -57,6 +57,7 @@ def turnMov(mov, turn):
     F',z' -> F'
     U2,y2 -> D2
     """
+    modifier = mov[1:]
     transMap = {}
     if turn[0] == 'x':
         transMap['R'] = 'R'
@@ -64,12 +65,15 @@ def turnMov(mov, turn):
         transMap['M'] = 'M'
 
         if turn[-1] == "'":
-            transMap['U'] = 'B'
-            transMap['D'] = 'F'
+            transMap['U'] = 'F'
+            transMap['D'] = 'B'
             transMap['E'] = 'S'
-            transMap['F'] = 'U'
-            transMap['B'] = 'D'
+            transMap['F'] = 'D'
+            transMap['B'] = 'U'
             transMap['S'] = 'E'
+            transMap['x'] = '' #no move
+            transMap['y'] = 'z'
+            transMap['z'] = 'y\''
         elif turn[-1] == "2":
             transMap['U'] = 'D'
             transMap['D'] = 'U'
@@ -77,13 +81,19 @@ def turnMov(mov, turn):
             transMap['F'] = 'B'
             transMap['B'] = 'F'
             transMap['S'] = 'S\''
+            transMap['x'] = 'x\''
+            transMap['y'] = 'y\''
+            transMap['z'] = 'z\''
         else:
-            transMap['U'] = 'F'
-            transMap['D'] = 'B'
+            transMap['U'] = 'B'
+            transMap['D'] = 'F'
             transMap['E'] = 'S'
-            transMap['F'] = 'D'
-            transMap['B'] = 'U'
+            transMap['F'] = 'U'
+            transMap['B'] = 'D'
             transMap['S'] = 'E'
+            transMap['x'] = 'x2'
+            transMap['y'] = 'z\''
+            transMap['z'] = 'y'
 
     if turn[0] == 'y':
         transMap['U'] = 'U'
@@ -97,6 +107,9 @@ def turnMov(mov, turn):
             transMap['F'] = 'L'
             transMap['B'] = 'R'
             transMap['S'] = 'S'
+            transMap['x'] = 'z\''
+            transMap['y'] = ''
+            transMap['z'] = 'x\''
         elif turn[-1] == "2":
             transMap['R'] = 'L'
             transMap['L'] = 'R'
@@ -104,6 +117,9 @@ def turnMov(mov, turn):
             transMap['F'] = 'B'
             transMap['B'] = 'F'
             transMap['S'] = 'S\''
+            transMap['x'] = 'x\''
+            transMap['y'] = 'y\''
+            transMap['z'] = 'z\''
         else:
             transMap['R'] = 'B'
             transMap['L'] = 'F'
@@ -111,6 +127,9 @@ def turnMov(mov, turn):
             transMap['F'] = 'R'
             transMap['B'] = 'L'
             transMap['S'] = 'S'
+            transMap['x'] = 'z'
+            transMap['y'] = 'y2'
+            transMap['z'] = 'x'
 
     if turn[0] == 'z':
         transMap['F'] = 'F'
@@ -124,6 +143,9 @@ def turnMov(mov, turn):
             transMap['U'] = 'R'
             transMap['D'] = 'L'
             transMap['E'] = 'E'
+            transMap['x'] = 'y'
+            transMap['y'] = 'x\''
+            transMap['z'] = ''
         elif turn[-1] == "2":
             transMap['R'] = 'L'
             transMap['L'] = 'R'
@@ -131,6 +153,9 @@ def turnMov(mov, turn):
             transMap['U'] = 'D'
             transMap['D'] = 'U'
             transMap['E'] = 'E\''
+            transMap['x'] = 'x\''
+            transMap['y'] = 'y\''
+            transMap['z'] = 'z\''
         else:
             transMap['R'] = 'U'
             transMap['L'] = 'D'
@@ -138,50 +163,28 @@ def turnMov(mov, turn):
             transMap['U'] = 'R'
             transMap['D'] = 'L'
             transMap['E'] = 'E'
-    return transMap[mov[0]] + mov[1:]
+            transMap['x'] = 'y\''
+            transMap['y'] = 'x'
+            transMap['z'] = 'z2'
+
+    if transMap[mov[0]] == '':
+        modifier = ''
+
+    return transMap[mov[0]] + modifier
 
 def turnAlg(alg):
-    """
-    str -> str
-    OBJ: turns an algithm given a turn of the entire cube
-    """
-    transStack = []
-    movStack = []
+    import time
+    result = ''
+    turns = ('x', 'y', 'z')
+    for turn in turns:
+        result = alg[:alg.find(turn)]
+        while(alg.find(turn) != -1):
+            auxAlg = groupAlg(alg[alg.find(turn)+1:])
+            for i in auxAlg:
+                result += turnMov(i, turn)
+            alg = result
+    return alg
 
-    #reverse algorithm into auxAlg
-    revStack = []
-    for i in alg:
-        revStack.append(i)
-    auxAlg = ' '
-    while len(revStack) != 0:
-        auxAlg += revStack.pop()
-
-    #split by x, y and z
-    cursor=0
-    for i in auxAlg:
-        if i in (' ', 'x','y','z'):
-            transStack.append(i)
-            movStack.append('')
-            cursor+=1
-        else:
-            movStack[cursor] += i
-
-    toTrans = []
-    for i in movStack:
-        for j in i:
-            toTrans.append(groupAlg(j))
-
-    #transform each movement
-
-
-    #reverse auxAlg
-    for i in auxAlg:
-        revStack.append(i)
-    auxAlg = ''
-    while len(revStack) != 0:
-        auxAlg += revStack.pop()
-
-    return auxAlgs
 
 def transMiddle(alg):
     """
