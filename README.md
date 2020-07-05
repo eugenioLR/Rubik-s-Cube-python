@@ -1,4 +1,4 @@
-#Rubik's Cube python
+# Rubik's Cube python
 
 To start execute the file CubeTextInterface.py
 
