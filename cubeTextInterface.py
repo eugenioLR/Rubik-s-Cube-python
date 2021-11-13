@@ -1,71 +1,73 @@
 import os
 from Cube import Cube
 
-COLOR = True
+class Menu:
+    def __init__(self):
+        self.clearScreen()
+        self.colorCheck()
 
-def start():
-    clearScreen()
-    colorCheck()
-    size = 0
-    try:
-        size = int(input("introduce the size of the cube: "))
-    except:
-        size = 3
+    def start(self):
+        self.clearScreen()
+        self.size = 0
+        try:
+            self.size = int(input("introduce the size of the cube: "))
+        except:
+            self.size = 3
 
-    return Cube(size)
+        return Cube(self.size)
 
-def colorCheck():
-    global COLOR
-    print("\033[48;2;255;0;0mtest\033[48;2;0;0;0m")
-    COLOR = input("Is the text above red?(Y/N)").upper() == 'Y'
-    clearScreen()
+    def colorCheck(self):
+        print("\033[48;2;255;0;0mtest\033[48;2;0;0;0m")
+        self.color = input("Is the text above red?(Y/N)").upper() == 'Y'
+        self.clearScreen()
 
-def performMovements(scramble, cube):
-    global COLOR
-    algorithm = scramble
-    while(algorithm != "EXIT"):
-        clearScreen()
-        cube = cube.doAlgorithm(algorithm)
-        if cube.isSolved():
-            print("Solution found.")
-        if COLOR:
-            print(cube.toStringColor())
-        else:
-            print(cube.toString())
-        algorithm = input("introduce the algorithm you want to execute ('exit' to exit, 'reset' to reset):").upper()
-        if algorithm == "RESET":
-            cube = Cube(cube.size)
-            algorithm = scramble
+    def performMovements(self, scramble, cube):
+        algorithm = scramble
+        while(algorithm != "EXIT"):
+            self.clearScreen()
+            cube = cube.doAlgorithm(algorithm)
+            if cube.isSolved():
+                print("Solution found.")
 
-def menu():
-    cube = start()
+            if self.color :
+                print(cube.toStringColor())
+            else:
+                print(cube.toString())
+            algorithm = input("introduce the algorithm you want to execute ('exit' to exit, 'reset' to reset):").upper()
+            if algorithm == "RESET":
+                cube = Cube(cube.size)
+                algorithm = scramble
 
-    running = True
-    while running:
-        clearScreen()
-        print("------------------------------------------")
-        print("0-Change size of the cube.")
-        print("1-Solve a cube.")
-        print("2-Transform algorithm.")
-        print("e-Exit")
-        print("------------------------------------------")
-        option = input("Select an option:")
-        if option == "0":
-            cube = start()
-        elif option == "1":
-            alg = input("insert the initial scramble(leave empty to do nothing): ")
-            performMovements(alg, cube)
-        elif option == "2":
+    def menu(self):
+        cube = self.start()
+
+        running = True
+        while running:
+            self.clearScreen()
+            print("------------------------------------------")
+            print("0-Change size of the cube.")
+            print("1-Solve a cube.")
+            print("2-Transform algorithm.")
+            print("e-Exit")
+            print("------------------------------------------")
+            option = input("Select an option:")
+            if option == "0":
+                cube = self.start()
+            elif option == "1":
+                alg = input("insert the initial scramble(leave empty to do nothing): ")
+                self.performMovements(alg, cube)
+            elif option == "2":
+                pass
+            elif option == "e":
+                running = False
+
+    def clearScreen(self):
+        try:
+            os.system("cls")
+            os.system("clear")
+        except:
             pass
-        elif option == "e":
-            running = False
-
-def clearScreen():
-    try:
-        os.system("cls")
-        os.system("clear")
-    except:
-        pass
 
 if __name__ == "__main__":
-    menu()
+    menu = Menu()
+    menu.menu()
