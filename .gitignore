@@ -1,3 +1,4 @@
 NN_input.txt
 NN_target.txt
-
+__pycache__/*
+__pycache__
