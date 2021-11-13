@@ -25,7 +25,7 @@ def performMovements(scramble, cube):
     algorithm = scramble
     while(algorithm != "EXIT"):
         clearScreen()
-        cube.doAlgorithm(algorithm)
+        cube = cube.doAlgorithm(algorithm)
         if cube.isSolved():
             print("Solution found.")
         if COLOR:

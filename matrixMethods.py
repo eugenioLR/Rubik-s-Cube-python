@@ -1,4 +1,7 @@
-def __turn90(matrix):
+import copy
+
+def __turn90(mat):
+    matrix = copy.deepcopy(mat)
     l = len(matrix)
     if l > 1:
         for x in range(l//2):
@@ -7,7 +10,8 @@ def __turn90(matrix):
                 (matrix[x][y],matrix[y][l-x-1],matrix[l-x-1][l-y-1],matrix[l-y-1][x]) = turned
     return matrix
 
-def __turn180(matrix):
+def __turn180(mat):
+    matrix = copy.deepcopy(mat)
     l = len(matrix)
     if l > 1:
         for x in range(l//2):
@@ -16,7 +20,8 @@ def __turn180(matrix):
                 (matrix[l-y-1][x],matrix[x][y],matrix[y][l-x-1],matrix[l-x-1][l-y-1]) = turned
     return matrix
 
-def __turn270(matrix):
+def __turn270(mat):
+    matrix = copy.deepcopy(mat)
     l = len(matrix)
     if l > 1:
         for x in range(l//2):
@@ -33,10 +38,11 @@ def printM(matrix, endM="\n"):
     print(end=endM)
 
 def turnM(matrix,times):
-    if times%4 == 1:
+    times = times%4
+    if times == 1:
         matrix = __turn90(matrix)
-    if times%4 == 2:
+    elif times == 2:
         matrix = __turn180(matrix)
-    if times%4 == 3:
+    elif times == 3:
         matrix = __turn270(matrix)
     return matrix

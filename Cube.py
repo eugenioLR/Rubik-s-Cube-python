@@ -1,5 +1,6 @@
 import matrixMethods as mM
 import rubikNotation as rN
+import copy
 
 class Cube:
     """
@@ -13,73 +14,128 @@ class Cube:
                5  5  5
                5  5  5
     """
-    def __init__(self, size):
+    def __init__(self, size, faces = None):
         self.size = size
-        self.faces = []
+        self.faces = faces
+        if self.faces is None:
+            self.faces = []
+            for i in range(6):
+                self.faces.append([])
+                for j in range(size):
+                    self.faces[i].append([])
+                    for k in range(size):
+                        self.faces[i][j].append(i)
+
+    def get_lin_face_data(self):
+        lin_face = []
         for i in range(6):
-            self.faces.append([])
-            for j in range(size):
-                self.faces[i].append([])
-                for k in range(size):
-                    self.faces[i][j].append(i)
+            for j in range(self.size):
+                lin_face += self.faces[i][j]
+        return lin_face
+
+    def __eq__(self, other):
+        # Implements the '==' operation
+        # It is not yet independent of rotation
+        aux_cube = other
+        turns = ['x']
+        for i in range(6):
+            for j in range(self.size):
+                if self.faces[i][j] != other.faces[i][j]:
+                    return False
+        return True
+
+    def __hash__(self):
+        # Implement hash function so this class can be used in sets/hash maps
+        return hash(tuple(self.get_lin_face_data()))
 
     def Uturn(self, times):
         """
         int -> noReturn
         OBJ: does a turn a certain number of turns on the upper face of the cube
         """
-        self.faces[0] = mM.turnM(self.faces[0],-times)
-        for i in range(times%4):
-            turned = (self.faces[1][0],self.faces[2][0],self.faces[3][0],self.faces[4][0])
-            (self.faces[4][0],self.faces[1][0],self.faces[2][0],self.faces[3][0]) = turned
+        times = times%4
+        new_faces = copy.deepcopy(self.faces)
+
+        if times != 0:
+            new_faces[0] = mM.turnM(self.faces[0],-times)
+
+            # top row of face 1 mapped to 2
+            # top row of face 2 mapped to 3
+            # top row of face 3 mapped to 4
+            # top row of face 4 mapped to 1
+            idx_changed = [4,1,2,3]
+            for j in range(len(idx_changed)):
+                new_faces[idx_changed[j]][0] = self.faces[idx_changed[(j+times)%4]][0]
+        return Cube(self.size, new_faces)
 
     def Xturn(self, times):
         """
         int -> noReturn
         OBJ: rotates the cube around the x axis
         """
-        self.faces[3] = mM.turnM(self.faces[3],-times)
-        self.faces[1] = mM.turnM(self.faces[1],times)
+        times = times%4
+        new_faces = copy.deepcopy(self.faces)
+        if times != 0:
+            # 1 time,  rotate: {0,4}
+            # 2 times, rotate: {0,4} + {2,0} = {4,2}
+            # 3 times, rotate: {0,4} + {2,0} + {2,5} = {5,4}
+            # 4 times, rotate: {0,4} + {2,0} + {2,5} + {5,4} = {}
 
-        for i in range(times%4):
-            self.faces[4] = mM.turnM(self.faces[4],2)
-            self.faces[0] = mM.turnM(self.faces[0],2)
+            new_faces[3] = mM.turnM(self.faces[3],-times)
+            new_faces[1] = mM.turnM(self.faces[1],times)
 
-            turned = (self.faces[2],self.faces[5],self.faces[4],self.faces[0])
-            (self.faces[0],self.faces[2],self.faces[5],self.faces[4]) = turned
+            idx_changed = [0,2,5,4]
+            for j in range(len(idx_changed)):
+                new_faces[idx_changed[j]] = self.faces[idx_changed[(j+times)%4]]
+
+            new_faces[4] = mM.turnM(new_faces[4],2)
+            new_faces[idx_changed[(-times-1)%4]] = mM.turnM(new_faces[idx_changed[(-times-1)%4]],2)
+
+        return Cube(self.size, new_faces)
 
     def Yturn(self, times):
         """
         int -> noReturn
         OBJ: rotates the cube around the y axis
         """
-        self.faces[0] = mM.turnM(self.faces[0],-times)
-        self.faces[5] = mM.turnM(self.faces[5],times)
-        for i in range(times%4):
+        times = times%4
+        new_faces = copy.deepcopy(self.faces)
+        if times != 0:
+            new_faces[0] = mM.turnM(self.faces[0],-times)
+            new_faces[5] = mM.turnM(self.faces[5],times)
 
-            turned = (self.faces[1],self.faces[2],self.faces[3],self.faces[4])
-            (self.faces[4],self.faces[1],self.faces[2],self.faces[3]) = turned
+            idx_changed = [4,1,2,3]
+            for j in range(len(idx_changed)):
+                new_faces[idx_changed[j]] = self.faces[idx_changed[(j+times)%4]]
+        return Cube(self.size, new_faces)
 
     def Zturn(self, times):
         """
         int -> noReturn
         OBJ: rotates the cube around the z axis
         """
-        self.faces[4] = mM.turnM(self.faces[4],times)
-        self.faces[2] = mM.turnM(self.faces[2],-times)
-        for i in range(times%4):
-            self.faces[0] = mM.turnM(self.faces[0],-1)
-            self.faces[1] = mM.turnM(self.faces[1],-1)
-            self.faces[3] = mM.turnM(self.faces[3],-1)
-            self.faces[5] = mM.turnM(self.faces[5],-1)
-            turned = (self.faces[1],self.faces[0],self.faces[3],self.faces[5])
-            (self.faces[0],self.faces[3],self.faces[5],self.faces[1]) = turned
+        times = times%4
+        new_faces = copy.deepcopy(self.faces)
+        if times != 0:
+            new_faces[4] = mM.turnM(self.faces[4],times)
+            new_faces[2] = mM.turnM(self.faces[2],-times)
+
+            idx_changed = [0,3,5,1]
+            for j in range(len(idx_changed)):
+                new_faces[idx_changed[j]] = self.faces[idx_changed[(j-times)%4]]
+
+            new_faces[0] = mM.turnM(new_faces[0],-times)
+            new_faces[1] = mM.turnM(new_faces[1],-times)
+            new_faces[3] = mM.turnM(new_faces[3],-times)
+            new_faces[5] = mM.turnM(new_faces[5],-times)
+        return Cube(self.size, new_faces)
 
     def turn(self, type):
         """
         str -> noReturn
         OBJ: does a single turn given the type of the turn
         """
+        result = self
         if len(type) == 1:
             times = 1
         elif type[1] == '\'':
@@ -88,42 +144,35 @@ class Cube:
             times = 2
 
         if type[0].upper() == 'U':
-            self.Uturn(times)
-        if type[0].upper() == 'F':
-            self.Xturn(1)
-            self.Uturn(times)
-            self.Xturn(-1)
-        if type[0].upper() == 'D':
-            self.Xturn(2)
-            self.Uturn(times)
-            self.Xturn(2)
-        if type[0].upper() == 'B':
-            self.Xturn(-1)
-            self.Uturn(times)
-            self.Xturn(1)
-        if type[0].upper() == 'R':
-            self.Zturn(-1)
-            self.Uturn(times)
-            self.Zturn(1)
-        if type[0].upper() == 'L':
-            self.Zturn(1)
-            self.Uturn(times)
-            self.Zturn(-1)
-        if type[0].upper() == 'X':
-            self.Xturn(times)
-        if type[0].upper() == 'Y':
-            self.Yturn(times)
-        if type[0].upper() == 'Z':
-            self.Zturn(times)
+            result = self.Uturn(times)
+        elif type[0].upper() == 'F':
+            result = self.Xturn(1).Uturn(times).Xturn(-1)
+        elif type[0].upper() == 'D':
+            result = self.Xturn(2).Uturn(times).Xturn(2)
+        elif type[0].upper() == 'B':
+            result = self.Xturn(-1).Uturn(times).Xturn(1)
+        elif type[0].upper() == 'R':
+            result = self.Zturn(-1).Uturn(times).Zturn(1)
+        elif type[0].upper() == 'L':
+            result = self.Zturn(1).Uturn(times).Zturn(-1)
+        elif type[0].upper() == 'X':
+            result = self.Xturn(times)
+        elif type[0].upper() == 'Y':
+            result = self.Yturn(times)
+        elif type[0].upper() == 'Z':
+            result = self.Zturn(times)
+        return result
 
     def doAlgorithm(self, alg):
         """
         str -> noReturn
         OBJ: does a sequence of turns on a cube
         """
+        result = self
         grouped = rN.groupAlg(alg)
         for i in grouped:
-            self.turn(i)
+            result = result.turn(i)
+        return result
 
     def isSolved(self):
         """
