@@ -1,5 +1,6 @@
 import matrixMethods as mM
 import rubikNotation as rN
+import random
 import copy
 
 class Cube:
@@ -15,6 +16,10 @@ class Cube:
                5  5  5
     """
     def __init__(self, size, faces = None):
+        """
+        Initialize the cube, if the face information is not given,
+        the cube will be initialized to a solved state
+        """
         self.size = size
         self.faces = faces
         if self.faces is None:
@@ -27,6 +32,11 @@ class Cube:
                         self.faces[i][j].append(i)
 
     def get_lin_face_data(self):
+        """
+        noInput -> tuple[int]
+        linearize the data of the cube, transform a set of 6
+        3x3 matrixes to a list with 6*3*3=54 elements
+        """
         lin_face = []
         for i in range(6):
             for j in range(self.size):
@@ -34,24 +44,49 @@ class Cube:
         return lin_face
 
     def __eq__(self, other):
-        # Implements the '==' operation
-        # It is not yet independent of rotation
+        """
+        Cube -> Bool
+        Implements the '==' operation
+        """
+        # Generate all rotations
+        rotations = ['X', 'Y', 'Z']
+        rotations = [i+modif for i in rotations for modif in ('', '\'', '2')]
+        rotations = [''] + rotations
+
+        # For each rotation compare itself with the other cube
+        # If we find a rotation that makes them equal we finish the search
+        # While comparing cubes, if we find one color that's differen we
+        # stop and go to the next rotation
         aux_cube = other
-        turns = ['x']
-        for i in range(6):
-            for j in range(self.size):
-                if self.faces[i][j] != other.faces[i][j]:
-                    return False
-        return True
+        finished = False
+        matches = True
+        rot = 0
+        while rot < len(rotations) and not finished:
+            matches = True
+            aux_cube = other.turn(rotations[rot])
+            face = 0
+            while face < 6 and matches:
+                row = 0
+                while row < self.size and matches:
+                    if self.faces[face][row] != aux_cube.faces[face][row]:
+                        matches = False
+                    row += 1
+                face += 1
+            finished = matches
+            rot += 1
+        return finished
 
     def __hash__(self):
-        # Implement hash function so this class can be used in sets/hash maps
+        """
+        noInput -> number
+        Implement hash function so this class can be used in sets/hash maps
+        """
         return hash(tuple(self.get_lin_face_data()))
 
     def Uturn(self, times):
         """
         int -> noReturn
-        OBJ: does a turn a certain number of turns on the upper face of the cube
+        Does a turn a certain number of turns on the upper face of the cube
         """
         times = times%4
         new_faces = copy.deepcopy(self.faces)
@@ -71,7 +106,7 @@ class Cube:
     def Xturn(self, times):
         """
         int -> noReturn
-        OBJ: rotates the cube around the x axis
+        Rotates the cube around the x axis
         """
         times = times%4
         new_faces = copy.deepcopy(self.faces)
@@ -96,7 +131,7 @@ class Cube:
     def Yturn(self, times):
         """
         int -> noReturn
-        OBJ: rotates the cube around the y axis
+        Rotates the cube around the y axis
         """
         times = times%4
         new_faces = copy.deepcopy(self.faces)
@@ -112,7 +147,7 @@ class Cube:
     def Zturn(self, times):
         """
         int -> noReturn
-        OBJ: rotates the cube around the z axis
+        Rotates the cube around the z axis
         """
         times = times%4
         new_faces = copy.deepcopy(self.faces)
@@ -133,40 +168,46 @@ class Cube:
     def turn(self, type):
         """
         str -> noReturn
-        OBJ: does a single turn given the type of the turn
+        Does a single turn given the type of the turn
         """
-        result = self
-        if len(type) == 1:
-            times = 1
-        elif type[1] == '\'':
-            times = -1
-        elif type[1] == '2':
-            times = 2
+        type = type.upper()
 
-        if type[0].upper() == 'U':
-            result = self.Uturn(times)
-        elif type[0].upper() == 'F':
-            result = self.Xturn(1).Uturn(times).Xturn(-1)
-        elif type[0].upper() == 'D':
-            result = self.Xturn(2).Uturn(times).Xturn(2)
-        elif type[0].upper() == 'B':
-            result = self.Xturn(-1).Uturn(times).Xturn(1)
-        elif type[0].upper() == 'R':
-            result = self.Zturn(-1).Uturn(times).Zturn(1)
-        elif type[0].upper() == 'L':
-            result = self.Zturn(1).Uturn(times).Zturn(-1)
-        elif type[0].upper() == 'X':
-            result = self.Xturn(times)
-        elif type[0].upper() == 'Y':
-            result = self.Yturn(times)
-        elif type[0].upper() == 'Z':
-            result = self.Zturn(times)
+        result = self
+        if len(type) > 0:
+            if len(type) == 1:
+                times = 1
+            elif type[1] == '\'':
+                times = -1
+            elif type[1] == '2':
+                times = 2
+
+            if type[0] == 'U':
+                result = self.Uturn(times)
+            elif type[0] == 'F':
+                result = self.Xturn(1).Uturn(times).Xturn(-1)
+            elif type[0] == 'D':
+                result = self.Xturn(2).Uturn(times).Xturn(2)
+            elif type[0] == 'B':
+                result = self.Xturn(-1).Uturn(times).Xturn(1)
+            elif type[0] == 'R':
+                result = self.Zturn(-1).Uturn(times).Zturn(1)
+            elif type[0] == 'L':
+                result = self.Zturn(1).Uturn(times).Zturn(-1)
+            elif type[0] == 'X':
+                result = self.Xturn(times)
+            elif type[0] == 'Y':
+                result = self.Yturn(times)
+            elif type[0] == 'Z':
+                result = self.Zturn(times)
+        else:
+            result = self.Uturn(0)
+
         return result
 
     def doAlgorithm(self, alg):
         """
         str -> noReturn
-        OBJ: does a sequence of turns on a cube
+        Does a sequence of turns on a cube
         """
         result = self
         grouped = rN.groupAlg(alg)
@@ -174,10 +215,19 @@ class Cube:
             result = result.turn(i)
         return result
 
+    def scramble(self, times=5):
+        moves = ['U', 'D', 'L', 'R', 'F', 'B']
+        moves = [i+modif for i in moves for modif in ('', '\'', '2')]
+        cube = self
+        for i in range(times):
+            cube = cube.turn(random.choice(moves))
+        return cube
+
+
     def isSolved(self):
         """
         noInput -> bool
-        OBJ: returns whether the cube is solved(each face has only one color) or not
+        Returns whether the cube is solved(each face has only one color) or not
         """
         solved = True
         i = j = k = 0
@@ -196,7 +246,7 @@ class Cube:
     def toString(self):
         """
         str -> str
-        OBJ: returns a text representation of the cube
+        Returns a text representation of the cube
         """
         result = ""
 
@@ -236,7 +286,7 @@ class Cube:
     def toStringColor(self):
         """
         str -> str
-        OBJ: returns a text representation of the cube
+        Returns a text representation of the cube
         """
         colorMap = {
             0:'\033[48;2;245;245;245m ', # rgb(F5,F5,F5) = (almost)white
@@ -285,3 +335,25 @@ class Cube:
             result += "\033[48;2;0;0;0m\n"
 
         return result
+
+    def verify(self):
+        """
+        noInput -> bool
+        Verify that there are 9 colors of each color
+        """
+        colors = {0:0,1:0,2:0,3:0,4:0,5:0}
+        for i in range(6):
+            for j in range(self.size):
+                for k in range(self.size):
+                    colors[self.faces[i][j][k]] += 1
+
+        valid = True
+        for i in colors.values():
+            valid = valid and i==self.size*self.size
+        return valid
+
+if __name__ == '__main__':
+    c = Cube(3)
+    print(c.verify())
+    c.faces[0][0][0] = 1
+    print(c.verify())

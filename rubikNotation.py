@@ -185,61 +185,76 @@ def turnAlg(alg):
             alg = result
     return alg
 
+
 def reduxAlg(alg):
-	# list[str] -> list[str]
-	# reduces a given algorithm like:
-	# [U, U', R] -> [R]; [U, U, R, R, R] -> [U2, R']
-	aux = '-'
-	turn_aux = 0
-	turn = 0
-	result = []
-	for i in alg:
-		if aux[0] == i[0]:
-			if "'" in i:
-				turn = 3
-			elif "2" in i:
-				turn = 2
-			else:
-				turn = 1
+    result = reduxAlgOnce(alg)
 
-			turn = (turn + turn_aux)%4
-			turn_aux = turn
+    while alg != result:
+        alg = result
+        result = reduxAlgOnce(alg)
+
+    return result
+
+def reduxAlgOnce(alg):
+    # list[str] -> list[str]
+    # reduces a given algorithm like:
+    # [U, U', R] -> [R]; [U, U, R, R, R] -> [U2, R']
+
+    opposite = {'R':'L', 'L':'R', 'U':'D', 'D':'U', 'F':'B', 'B':'F'}
+    aux = '-'
+    turn_aux = 0
+    turn = 0
+    result = []
+    for i in alg:
+        if aux[0] == i[0]:
+            if "'" in i:
+                turn = 3
+            elif "2" in i:
+                turn = 2
+            else:
+                turn = 1
+
+            turn = (turn + turn_aux)%4
+            turn_aux = turn
 
 
-			if turn == 0:
-				aux = aux[0] + "0"
-			elif turn == 1:
-				aux = aux[0]
-			elif turn == 2:
-				aux = aux[0] + "2"
-			elif turn == 3:
-				aux = aux[0] + "'"
+            if turn == 0:
+                aux = aux[0] + "0"
+            elif turn == 1:
+                aux = aux[0]
+            elif turn == 2:
+                aux = aux[0] + "2"
+            elif turn == 3:
+                aux = aux[0] + "'"
 
-		else:
-			if turn_aux != 0:
-				result.append(aux)
-			aux = i
-			if "'" in i:
-				turn_aux = 3
-			elif "2" in i:
-				turn_aux = 2
-			elif "0" in i:
-				turn_aux = 0
-			else:
-				turn_aux = 1
+        #elif aux[0] == opposite[i[0]]:
+        #    result.append(i)
 
-	if turn_aux != 0:
-		result.append(aux)
-		aux = i
-		if i.find("'"):
-			turn_aux = 3
-		elif i.find("2"):
-			turn_aux = 2
-		elif i.find("0"):
-			turn_aux = 0
-		else:
-			turn_aux = 1
-	return result
+        else:
+            if turn_aux != 0:
+                result.append(aux)
+            aux = i
+            if "'" in i:
+                turn_aux = 3
+            elif "2" in i:
+                turn_aux = 2
+            elif "0" in i:
+                turn_aux = 0
+            else:
+                turn_aux = 1
+
+    if turn_aux != 0:
+        result.append(aux)
+        aux = i
+        if i.find("'"):
+            turn_aux = 3
+        elif i.find("2"):
+            turn_aux = 2
+        elif i.find("0"):
+            turn_aux = 0
+        else:
+            turn_aux = 1
+    return result
 
 def transMiddle(alg):
     """
