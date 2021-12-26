@@ -21,16 +21,21 @@ def groupAlg(alg):
     OBJ: groups the movements in an algorithm given by a string
     RL'F2 -> [R,L',F2]
     """
-    result=[]
-    item=[]
-    for i in range(len(alg)):
-        item.append(alg[i])
-        if len(item) >= 2 or i == len(alg)-1 or (alg[i+1] not in ("'", "2")):
-            result.append("".join(item))
-            item.clear()
+    if type(alg) != list:
+        result=[]
+        item=[]
+        for i in range(len(alg)):
+            item.append(alg[i])
+            if len(item) >= 2 or i == len(alg)-1 or (alg[i+1] not in ("'", "2")):
+                result.append("".join(item))
+                item.clear()
+    else:
+        result = alg
 
     return result
 
+def algString(alg):
+    return "".join(alg)
 
 def invertAlg(alg):
     """
@@ -44,10 +49,11 @@ def invertAlg(alg):
 
     for mov in alg:
         stack.append(invertMov(mov))
+
     while len(stack) != 0:
         result.append(stack.pop())
 
-    return "".join(result)
+    return result
 
 def turnMov(mov, turn):
     """
@@ -172,96 +178,136 @@ def turnMov(mov, turn):
 
     return transMap[mov[0]] + modifier
 
-def turnAlg(alg):
-    import time
-    result = ''
+def turnAlg(alg, rot):
+    """
+    Applies the rotation to each turn individually
+    It results in the same normalized cube
+    """
+    return list(map(lambda x: turnMov(x, rot), alg))
+
+def reduceAxisTurns(alg):
+    result = []
     turns = ('x', 'y', 'z')
     for turn in turns:
         result = alg[:alg.find(turn)]
         while(alg.find(turn) != -1):
             auxAlg = groupAlg(alg[alg.find(turn)+1:])
-            for i in auxAlg:
-                result += turnMov(i, turn)
             alg = result
     return alg
 
-
 def reduxAlg(alg):
-    result = reduxAlgOnce(alg)
+    """
+    Applies reductions untill the algorithm is completely reduced
+    """
+    result = reduxAlgRepeat(alg)
 
     while alg != result:
         alg = result
-        result = reduxAlgOnce(alg)
+        result = reduxAlgInv(alg)
+        result = reduxAlgRepeat(result)
 
     return result
 
-def reduxAlgOnce(alg):
-    # list[str] -> list[str]
-    # reduces a given algorithm like:
-    # [U, U', R] -> [R]; [U, U, R, R, R] -> [U2, R']
+def reduxAlgRepeat(alg):
+    """
+    list[str] -> list[str]
+    reduces a given algorithm like:
+    [U, U', R] -> [R]
+    [U, U, R, R, R] -> [U2, R']
+    """
 
-    opposite = {'R':'L', 'L':'R', 'U':'D', 'D':'U', 'F':'B', 'B':'F'}
+    turnStr = {0:"0", 1:"", 2:"2", 3:"'"}
+    turnNum = {"0":0, "":1, "2":2, "'":3}
+
     aux = '-'
     turn_aux = 0
     turn = 0
     result = []
     for i in alg:
         if aux[0] == i[0]:
-            if "'" in i:
-                turn = 3
-            elif "2" in i:
-                turn = 2
+            if len(i) != 1:
+                turn = turnNum[i[1]]
             else:
                 turn = 1
 
-            turn = (turn + turn_aux)%4
-            turn_aux = turn
+            turn_aux = (turn + turn_aux)%4
 
-
-            if turn == 0:
-                aux = aux[0] + "0"
-            elif turn == 1:
-                aux = aux[0]
-            elif turn == 2:
-                aux = aux[0] + "2"
-            elif turn == 3:
-                aux = aux[0] + "'"
-
-        #elif aux[0] == opposite[i[0]]:
-        #    result.append(i)
-
+            aux = aux[0] + turnStr[turn_aux]
         else:
             if turn_aux != 0:
                 result.append(aux)
-            aux = i
-            if "'" in i:
-                turn_aux = 3
-            elif "2" in i:
-                turn_aux = 2
-            elif "0" in i:
-                turn_aux = 0
+
+            if len(i) != 1:
+                turn_aux = turnNum[i[1]]
             else:
                 turn_aux = 1
 
+            aux = i
+
     if turn_aux != 0:
         result.append(aux)
-        aux = i
-        if i.find("'"):
-            turn_aux = 3
-        elif i.find("2"):
-            turn_aux = 2
-        elif i.find("0"):
-            turn_aux = 0
-        else:
-            turn_aux = 1
+
     return result
+
+def reduxAlgInv(alg):
+    """
+    list[str] -> list[str]
+    it requires that the algorithm has passed through reduxAlgRepeat
+    reduces a given algorithm like:
+    [U, D, U] -> [D, U2]
+    [U, U, D, U, R] -> [U2, D, R]
+    """
+
+    turnStr = {0:"0", 1:"", 2:"2", 3:"'"}
+    turnNum = {"0":0, "":1, "2":2, "'":3}
+    opposite = {'R':'L', 'L':'R', 'U':'D', 'D':'U', 'F':'B', 'B':'F'}
+    aux = '-'
+    aux_inv = '-'
+    turn_aux = 0
+    result = []
+
+    for i in alg:
+        if aux[0] == opposite[i[0]]:
+            aux_inv = i
+        elif aux[0] == i[0]:
+            if len(i) != 1:
+                turn = turnNum[i[1]]
+            else:
+                turn = 1
+
+            turn_aux = (turn + turn_aux)%4
+
+            aux = aux[0] + turnStr[turn_aux]
+        else:
+            if turn_aux != 0:
+                result.append(aux)
+
+            if aux_inv != '-':
+                result.append(aux_inv)
+                aux_inv = '-'
+
+            if len(i) != 1:
+                turn_aux = turnNum[i[1]]
+            else:
+                turn_aux = 1
+
+            aux = i
+
+    if turn_aux != 0:
+        result.append(aux)
+
+    if aux_inv != '-':
+        result.append(aux_inv)
+
+    return result
+
 
 def transMiddle(alg):
     """
     str -> str
     OBJ: subsitutes parts of an algorithm to get slice movements
     """
-    auxStr = alg
+    auxStr = algString(alg)
     auxStr = auxStr.replace("RL'","Mx")
     auxStr = auxStr.replace("L'R","Mx")
     auxStr = auxStr.replace("R'L","M'x")
@@ -277,4 +323,4 @@ def transMiddle(alg):
     auxStr = auxStr.replace("F'B","S'z")
     auxStr = auxStr.replace("BF'","S'z")
 
-    return auxStr
+    return groupAlg(auxStr)

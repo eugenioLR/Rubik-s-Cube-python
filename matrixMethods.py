@@ -1,3 +1,4 @@
+import numpy as np
 import copy
 
 def __turn90(mat):
@@ -8,6 +9,7 @@ def __turn90(mat):
             for y in range(x, l-x-1):
                 turned  = (matrix[y][l-x-1],matrix[l-x-1][l-y-1],matrix[l-y-1][x],matrix[x][y])
                 (matrix[x][y],matrix[y][l-x-1],matrix[l-x-1][l-y-1],matrix[l-y-1][x]) = turned
+
     return matrix
 
 def __turn180(mat):

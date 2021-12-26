@@ -19,7 +19,7 @@ class Rubik_train_data:
         self.depth = depth
         self.max_samples = max_samples
         # To avoid inifite loops, it can be done better...
-        self.max_iterations = max(10000, self.max_samples)
+        self.max_iterations = max(100000, self.max_samples)
 
 
     def prepare_data(self):
@@ -42,9 +42,12 @@ class Rubik_train_data:
                     self.algs[i].add(tuple(aux_alg))
                     self.cubes[i].add(self.cube.doAlgorithm(aux_alg))
                     samples += 1
+                else:
+
                 stall_count += 1
                 #exit if samples > self.max_samples or (samples < len(moves) and i == 1)
             total_samples += len(self.cubes[i])
+            print(f"DEBUG: depth {i} reached")
         return total_samples
 
 
@@ -62,13 +65,13 @@ class Rubik_train_data:
 
     def expand_data(self):
         # Rotates all the cubes and adds them to the hashmap
-        rotations = ['X', 'Y', 'Z']
+        rotations = ['x', 'y', '']
         rotations = [i+modif for i in rotations for modif in ('', '\'', '2')]
         count = 0
 
         for i in self.cubes:
-            for rot1 in ['', 'X', 'X2', 'X\'', 'Z', 'Z\'']:
-                for rot2 in ['', 'Y', 'Y2', 'Y\'']:
+            for rot1 in ['', 'x', 'x2', 'x\'', 'z', 'z\'']:
+                for rot2 in ['', 'y', 'y2', 'y\'']:
                     if not(rot1 == '' and rot1 == ''):
                         aux_set = set()
                         for j in self.cubes[i]:
@@ -106,7 +109,7 @@ class Rubik_train_data:
         return result
 
 def gen_data():
-    data = Rubik_train_data(3, 20, 200)
+    data = Rubik_train_data(3, 20, 100000)
 
     cubes = data.prepare_data()
     print(f"Generated {cubes} data points")
@@ -114,11 +117,11 @@ def gen_data():
     data_purged = data.cleanup_data()
     print(f"Got rid of {data_purged} data points before expanding the data")
 
-    data_expanded = data.expand_data()
-    print(f"Generated {data_expanded} new data points")
+    #data_expanded = data.expand_data()
+    #print(f"Generated {data_expanded} new data points")
 
-    data_purged = data.cleanup_data()
-    print(f"Got rid of {data_purged} data points after expanding the data")
+    #data_purged = data.cleanup_data()
+    #print(f"Got rid of {data_purged} data points after expanding the data")
 
     data.linearlize_data()
 

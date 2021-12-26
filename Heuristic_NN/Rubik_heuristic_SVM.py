@@ -8,9 +8,10 @@ from sklearn.model_selection import train_test_split
 from sklearn import svm
 from sklearn import metrics
 from sklearn.model_selection import GridSearchCV
+from joblib import dump, load
 
 cube_data = np.loadtxt("NN_input.csv", delimiter=',')
-targets = np.loadtxt("NN_target.csv ", delimiter=',')
+targets = np.loadtxt("NN_target.csv", delimiter=',')
 
 cube_data = torch.from_numpy(cube_data)
 
@@ -66,7 +67,11 @@ print(y_test)
 print(y_pred)
 
 print("Accuracy:", metrics.accuracy_score(y_test, y_pred))
-
 print("Precision:", metrics.precision_score(y_test, y_pred, average='macro'))
-
 print("Recall:", metrics.recall_score(y_test, y_pred, average='macro'))
+
+import pickle
+
+#dump(regr, '3x3HeuristicModel.svm')
+s = pickle.dumps(regr)
+dump(s, '3x3HeuristicModel.svm')
