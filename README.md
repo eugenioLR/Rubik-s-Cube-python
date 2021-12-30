@@ -1,6 +1,6 @@
 # Rubik's Cube python
 
-## Text Command line interface
+## Command line interface
 To start execute the file CubeTextInterface.py
 
 The avilable movements are:
