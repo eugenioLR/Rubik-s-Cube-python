@@ -5,20 +5,13 @@ from Cube import *
 from matrixMethods import *
 from image_to_cube import *
 from video_input import *
-from IDA_solver import *
+from Solver import *
 from matplotlib import pyplot as plt
 import time
 import traceback
 import threading
 
 close_flag = False
-
-def clearScreen(self):
-    try:
-        os.system("cls")
-        os.system("clear")
-    except:
-        pass
 
 def on_close(event):
     global close_flag
@@ -33,6 +26,7 @@ class Cube_calibrator:
         self.calibrated = False
         self.solution_found = False
         self.finished = False
+        self.solver_type = 'Korf'
 
         self.cube = Cube(3)
         self.cam = WebcamVideoStream(fps=fps)
@@ -99,6 +93,8 @@ class Cube_calibrator:
             prev_face = np.zeros([1,1])
             colors_checked = []
             faces = []
+
+            # Main loop
             while not self.finished and not close_flag:
                 # Measure time for FPS control
                 frame_start = time.time()
@@ -135,7 +131,7 @@ class Cube_calibrator:
 
 
 
-                #self.calibrated = True
+                self.calibrated = True
                 ## User interaction
 
                 # Initialize indicator data
@@ -204,8 +200,9 @@ class Cube_calibrator:
 
                     if self.solver is None:
                         # Launch the solver thread
-                        self.cube = self.arrange_cube(faces, colors_checked)
-                        self.solver = Cube_solver_thread(self.cube)
+                        self.cube = Cube(3).doAlgorithm(['U2', 'B2', 'R', 'L'])
+                        #self.cube = self.arrange_cube(faces, colors_checked)
+                        self.solver = Cube_solver_thread(self.cube, self.solver_type)
                         self.solver.setDaemon(True)
                         self.solver.start()
                         solution_timer = time.time()
@@ -219,6 +216,8 @@ class Cube_calibrator:
                     else:
                         # The solver is not done yet, be nice to the user, they might get impatient
                         plt.title("Solving cube...")
+
+                        # Show rotating section of a circle
                         indicator_x, indicator_y = self.get_shape_coords("circle", indic_size, indicator_offset, 0.2, (time.time() - solution_timer)*180)
                         indicator_color = "white"
                 else:
@@ -226,7 +225,7 @@ class Cube_calibrator:
                     print("showing moves")
                     self.finished = True
 
-                ax.plot(indicator_x, indicator_y, indicator_color, linewidth = 7)
+                ax.plot(indicator_x, indicator_y, indicator_color, linewidth = 6)
 
 
                 ## Display

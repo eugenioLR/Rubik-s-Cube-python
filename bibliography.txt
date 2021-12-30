@@ -1,7 +1,11 @@
-https://ruwix.com/the-rubiks-cube/herbert-kociemba-optimal-cube-solver-cube-explorer/
+Information about the rubiks cube:
+-https://cube20.org/
 
-https://cube20.org/
+Korf's algorithm:
+-https://www.cs.princeton.edu/courses/archive/fall06/cos402/papers/korfrubik.pdf
 
-https://www.cs.princeton.edu/courses/archive/fall06/cos402/papers/korfrubik.pdf
+Lego solver, breif explanation of solving algorithms
+-http://www.youngscientist.com.au/wp-content/uploads/2015/02/Physics-10-12-Justin-Marcellienus-report.pdf
 
-http://www.youngscientist.com.au/wp-content/uploads/2015/02/Physics-10-12-Justin-Marcellienus-report.pdf
+Online solver and explanation:
+-https://ruwix.com/the-rubiks-cube/herbert-kociemba-optimal-cube-solver-cube-explorer/
