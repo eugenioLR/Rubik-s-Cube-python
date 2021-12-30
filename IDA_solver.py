@@ -4,6 +4,8 @@ import numpy as np
 import Heuristic_NN
 from Heuristic_NN.Rubik_heuristic_NN import *
 import time
+from pathlib import Path
+import threading
 
 class Cube_node:
     """
@@ -44,15 +46,15 @@ def eval_nn():
 
     # Targets
     targets = np.loadtxt("Heuristic_NN/NN_target.csv", delimiter=',')
-    #range_rep = np.transpose(np.matlib.repmat(np.arange(1,21), len(targets1), 1))
-    #targets = np.equal(np.matlib.repmat(targets1, 20, 1), range_rep)
-    #targets = np.transpose(targets)
+    range_rep = np.transpose(np.matlib.repmat(np.arange(1,21), len(targets1), 1))
+    targets = np.equal(np.matlib.repmat(targets1, 20, 1), range_rep)
+    targets = np.transpose(targets)
     targets = torch.from_numpy(targets).long().to(device)
 
     t = model(inputs)
 
-    #result = torch.argmax(t, dim=1)
-    #true_targets = torch.argmax(targets, dim=1)
+    result = torch.argmax(t, dim=1)
+    true_targets = torch.argmax(targets, dim=1)
     result = torch.round(t.reshape(t.shape[0], -1)).cpu().detach()
     true_targets = targets.reshape(targets.shape[0], -1).cpu().detach()
 
@@ -67,15 +69,33 @@ def eval_nn():
     plt.ylabel("prediction")
     plt.show()
 
+class Cube_solver_thread(threading.Thread):
+    def __init__(self, cube):
+        threading.Thread.__init__(self)
+        self.cube = cube
+        self.solution_found = False
+        self.solution = None
+
+    def run(self):
+        solver = Cube_solver()
+
+        node, t = solver.solve_cube(self.cube, debug=True)
+
+        self.solution = reduxAlg(node[-1].alg)
+        self.solution_found = True
+
+
+
 class Cube_solver:
     def __init__(self):
+        path = str(Path(__file__).resolve().parent) + "/"
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-        self.model = torch.load('Heuristic_NN/3x3HeuristicModel.pt').to(self.device)
+        self.model = torch.load(path + 'Heuristic_NN/3x3HeuristicModel.pt.bak').to(self.device)
         self.model.eval()
-        self.min = 40
+        self.min = 100
 
     # We are going to use IDA* (iterative deepening A*)
-    def solve_cube(self, cube):
+    def solve_cube(self, cube, debug = False):
         solution = []
         transf = []
         cube = cube.normalize(transf)
@@ -86,7 +106,8 @@ class Cube_solver:
         while t >= 0 and t <= self.min:
             t = self.__IDAstar_search(path, 0, bound)
             bound = t
-            print("DEBUG: bound found", bound)
+            if debug:
+                print("DEBUG: bound found", bound)
 
         if t == -1:
             return (path, transf)
@@ -114,7 +135,8 @@ class Cube_solver:
 
         for succ in moves:
             new_cube = node.cube.turn(succ)
-            if new_cube not in [i.cube for i in path]:
+            #if new_cube not in [i.cube for i in path]:
+            if self.already_checked(new_cube, path) and len(reduxAlg(node.alg + [succ])) == len(node.alg + [succ]):
                 path.append(Cube_node(new_cube, node.alg + [succ]))
                 t = self.__IDAstar_search(path, g+1, bound, succ[0])
                 if t == -1:
@@ -124,14 +146,44 @@ class Cube_solver:
                 path.pop()
         return min
 
+    def already_checked(self, cube, path):
+        # Check for symetries in the cube set
+        cubes = [i.cube for i in path]
+
+        new_cubes = []
+        for rot1 in ['', 'x', 'x2', 'x\'', 'z', 'z\'']:
+            for rot2 in ['', 'y', 'y2', 'y\'']:
+                new_cubes.append(cube.turn(rot1).turn(rot2).normalize_swap_colors())
+
+        #new_cubes = [
+        #    cube,
+        #    cube.turn('X2').normalize_swap_colors(),
+        #    cube.turn('Y').normalize_swap_colors(),
+        #    cube.turn('Y\'').normalize_swap_colors(),
+        #    cube.turn('Y2').normalize_swap_colors(),
+        #    cube.turn('Z').normalize_swap_colors(),
+        #    cube.turn('Z\'').normalize_swap_colors(),
+        #    cube.turn('Z2').normalize_swap_colors(),
+        #]
+
+        found = False
+        i = 0
+        while not found and i < len(new_cubes):
+            found = new_cubes[i] not in [j.cube for j in path]
+            i += 1
+
+        return found
+
     def __heuristic(self, cube):
         porc = [0, 0, 1]
         #solution_diff = self.__difference_heuristic(cube)
         #face_heuristic = self.__face_color_heuristic(cube)
-        neural_heuristic = self.__nn_heuristic(cube)
+        #neural_heuristic = self.__nn_heuristic(cube)
 
         #return int(solution_diff*porc[0] + face_heuristic*porc[1] + neural_heuristic*porc[2])
         return self.__nn_heuristic(cube)
+        #return (face_heuristic + solution_diff)/3
+
 
     def __nn_heuristic(self, cube):
         cube_data = np.array(cube.normalize().get_lin_face_data())
@@ -139,6 +191,7 @@ class Cube_solver:
         inputs = np.concatenate([cube_data, colors_in_face])
         inputs = torch.tensor([inputs]).float().to(self.device)
         result = self.model(inputs)
+        # USED FOR 'ONE HOT' ENCODING
         result = result.softmax(dim=1).argmax().to('cpu')
 
         return int(result)
@@ -181,7 +234,7 @@ def test_solver_time(moves = 6):
     tim = 0
     for i in range(100):
         start = time.time()
-        test_solver(moves = 6)
+        test_solver(moves = moves)
         #test_solver(alg = ['U','R','F','D','F','U\''])
         end = time.time()
         print("time taken:", end-start)
@@ -190,15 +243,17 @@ def test_solver_time(moves = 6):
 
 
 if __name__ == '__main__':
-    #test_solver(moves = 10)
+    test_solver(8)
+    #test_solver_time(6)
 
     #NN1: 7.51s
     #NN2: 3.2s
     #NN3: 5.42s
     #NN4: 1.09
+    #NN2(symmetry): 0.81
 
 
-    eval_nn()
+    #eval_nn()
     #a = Cube_solver().nn_heuristic(Cube(3))
 
     # Real example

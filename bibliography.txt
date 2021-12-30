@@ -1,1 +1,7 @@
 https://ruwix.com/the-rubiks-cube/herbert-kociemba-optimal-cube-solver-cube-explorer/
+
+https://cube20.org/
+
+https://www.cs.princeton.edu/courses/archive/fall06/cos402/papers/korfrubik.pdf
+
+http://www.youngscientist.com.au/wp-content/uploads/2015/02/Physics-10-12-Justin-Marcellienus-report.pdf

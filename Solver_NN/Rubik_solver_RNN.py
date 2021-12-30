@@ -22,8 +22,13 @@ move_to_int = {
     'R':6, "R'":7, 'R2':8,
     'L':9, "L'":10,'L2':11,
     'F':12,"F'":13,'F2':14,
-    'B':13,"B'":16,'B2':17,
+    'B':15,"B'":16,'B2':17,
 }
+
+int_to_move = {v: k for k, v in move_to_int.items()}
+
+print(move_to_int)
+print(int_to_move)
 
 class RNN(nn.Module):
     """

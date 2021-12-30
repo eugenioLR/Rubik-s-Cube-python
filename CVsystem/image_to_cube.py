@@ -21,10 +21,15 @@ def imfill(I):
     # Mask used to flood filling.
     # Notice the size needs to be 2 pixels than the image.
     h, w = I.shape[:2]
-    mask = np.zeros((h+2, w+2), np.uint8)
+    mask = np.zeros((h+3, w+3), np.uint8)
+
+    I_filled_large = np.vstack([np.zeros([I.shape[1]]), I_filled])
+    I_filled_large = np.hstack([np.zeros([I.shape[0]+1,1]), I_filled_large]).astype(np.uint8)
 
     # Floodfill from point (0, 0)
-    cv2.floodFill(I_filled, mask, (0,0), 255)
+    cv2.floodFill(I_filled_large, mask, (0,0), 255)
+
+    I_filled = I_filled_large[1:,1:]
 
     # Invert floodfilled image
     I_filled_inv = cv2.bitwise_not(I_filled)
@@ -48,6 +53,32 @@ def binarize(I_rgb):
     I_bw = cv2.morphologyEx(I_bw, cv2.MORPH_OPEN, kernel_close)
 
     return I_bw
+
+def borders(I_rgb):
+    I_hsv = cv2.cvtColor(I_rgb, cv2.COLOR_RGB2HSV)
+
+    I_gray = cv2.normalize(I_hsv[:,:,2], None, 0, 255, cv2.NORM_MINMAX, cv2.CV_8UC1)
+
+    I_border = cv2.Canny(I_gray, 100, 200)
+    #I_border = cv2.Sobel(I_gray, cv2.CV_8UC1, 1, 0,ksize=5)
+    #th, I_bw = cv2.threshold(I_value, 0, 255, cv2.THRESH_BINARY+cv2.THRESH_OTSU)
+    #I_bw = cv2.adaptiveThreshold(I_value, 255, cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY, 21, 10)
+
+    #kernel_erosion = cv2.getStructuringElement(cv2.MORPH_RECT, [6, 6])
+    #I_bw = cv2.morphologyEx(I_bw, cv2.MORPH_ERODE, kernel_erosion)
+
+    I_inv = np.invert(I_border)
+
+    kernel_close = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, [6, 6])
+    I_bw = cv2.morphologyEx(I_inv, cv2.MORPH_OPEN, kernel_close)
+
+    I_border = np.invert(I_inv)
+
+    return I_border
+
+def hough_lines(I_border):
+    lines = cv2.HoughLines(I_border, 1, np.pi/180, 150, None, 0,0)
+
 
 def find_contours(I_bw, debug = False):
     im_h, im_w = I_bw.shape
@@ -117,12 +148,12 @@ def find_contours(I_bw, debug = False):
     if debug:
         print(f"{np.count_nonzero(boundary_mask)} of the {len(contours)} boundaries were conserved")
 
-    return [contours[i] for i in range(len(boundary_mask)) if boundary_mask[i]]
+    return [contours[i] for i in range(len(boundary_mask)) if boundary_mask[i]], properties[[5, 6]][:, boundary_mask]
 
-def sticker_mask(I_rgb):
+def sticker_mask(I_rgb, debug = False):
     I_bw = binarize(I_rgb)
 
-    contours = find_contours(I_bw, debug=True)
+    contours, positions = find_contours(I_bw, debug=debug)
 
     I_result = np.zeros(I_bw.shape)
 
@@ -145,32 +176,6 @@ def isolate_stickers(I_rgb):
 
     return I_result
 
-
-def test_isolate_stickers():
-    I_rgb = cv2.imread("rubiks_cube_photo.png")
-
-    I_rgb = isolate_stickers(I_rgb)
-
-    I_rgb = cv2.cvtColor(I_rgb, cv2.COLOR_BGR2HSV)
-
-    plt.subplot(1, 3, 1)
-    plt.imshow(I_rgb[:,:,0], cmap = 'hsv')
-    plt.subplot(1, 3, 2)
-    plt.imshow(I_rgb[:,:,1], cmap = 'Greys_r')
-    plt.subplot(1, 3, 3)
-    plt.imshow(I_rgb[:,:,2], cmap = 'Greys_r')
-    plt.show()
-
-def test_find_contours():
-    I_rgb = cv2.imread("rubiks_cube_photo.png")
-
-    contours = find_contours(binarize(I_rgb))
-
-    plt.imshow(I_rgb)
-    for i in range(len(contours)):
-        plt.plot(contours[i][:,:,0], contours[i][:,:,1], 'w')
-
-    plt.show()
 
 color_names = {0:"white", 1:"red", 2:"blue", 3:"orange", 4:"green", 5:"yellow", -2: "gray", -1:"purple?"}
 
@@ -222,6 +227,7 @@ def get_ordered_colors(I_rgb, contours, debug = False):
 
     face = np.zeros(9)
     positions = -np.ones([2, 9])
+    face_positions = None
 
     kernel = cv2.getStructuringElement(cv2.MORPH_RECT, [4, 4])
     for i in range(len(contours)):
@@ -255,19 +261,48 @@ def get_ordered_colors(I_rgb, contours, debug = False):
     if len(contours) == 9:
         face_order_y = np.argsort(positions[1, :])
         positions_grid = np.reshape(positions[:,face_order_y], [2,3,3])
-
         face = np.reshape(face[face_order_y], [3,3])
-
         face_order_x = np.argsort(positions_grid[0,:,:], axis=1)
         face = np.take_along_axis(face, face_order_x, axis=1)
+
+        face_positions = positions[:,face_order_y]
+        face_positions[:, :3] = face_positions[:, face_order_x[0,:]]
+        face_positions[:,3:6] = face_positions[:, face_order_x[1,:]+3]
+        face_positions[:,6: ] = face_positions[:, face_order_x[2,:]+6]
 
         if debug:
             print(face)
     else:
         face = None
 
-    return face
+    return np.array(face), face_positions
 
+
+def test_isolate_stickers():
+    I_rgb = cv2.imread("rubiks_cube_photo.png")
+
+    I_rgb = isolate_stickers(I_rgb)
+
+    I_rgb = cv2.cvtColor(I_rgb, cv2.COLOR_BGR2HSV)
+
+    plt.subplot(1, 3, 1)
+    plt.imshow(I_rgb[:,:,0], cmap = 'hsv')
+    plt.subplot(1, 3, 2)
+    plt.imshow(I_rgb[:,:,1], cmap = 'Greys_r')
+    plt.subplot(1, 3, 3)
+    plt.imshow(I_rgb[:,:,2], cmap = 'Greys_r')
+    plt.show()
+
+def test_find_contours():
+    I_rgb = cv2.imread("rubiks_cube_photo.png")
+
+    contours = find_contours(binarize(I_rgb))
+
+    plt.imshow(I_rgb)
+    for i in range(len(contours)):
+        plt.plot(contours[i][:,:,0], contours[i][:,:,1], 'w')
+
+    plt.show()
 
 if __name__ == '__main__':
     I_rgb = cv2.imread("rubiks_cube_photo.png")

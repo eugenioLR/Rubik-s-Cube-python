@@ -19,10 +19,27 @@ class Rubik_train_data:
         self.depth = depth
         self.max_samples = max_samples
         # To avoid inifite loops, it can be done better...
-        self.max_iterations = max(100000, self.max_samples)
+        self.max_stall = 10000
+        self.max_stall_unknown = max_samples
+        # check the last table in: https://cube20.org/ and https://www.cs.princeton.edu/courses/archive/fall06/cos402/papers/korfrubik.pdf
+        # number of cube states by distance
+        self.distance_pos = {
+            0: 1,
+            1: 18,
+            2: 243,
+            3: 3240,
+            4: 43239,
+            5: 574908,
+            6: 7618438,
+            # the rest are too high to even reach, we wont take them into account
+        }
+        for i in range(7, 22):
+            self.distance_pos[i] = 0
 
 
-    def prepare_data(self):
+
+    def prepare_data(self, debug = False):
+
         # generate a large amount of random cubes that are 'depth' moves away from being solved
         moves = ['U', 'D', 'L', 'R', 'F', 'B']
         moves = [i+modif for i in moves for modif in ('', '\'', '2')]
@@ -35,19 +52,27 @@ class Rubik_train_data:
             self.cubes[i] = set()
             samples = 0
             stall_count = 0
-            while(samples < self.max_samples and stall_count < self.max_iterations):
+            max_stall = self.max_stall
+            if i > 6:
+                max_stall = self.max_stall_unknown
+            j = 0
+            while(samples < self.max_samples and stall_count < max_stall):
                 aux_alg = [random.choice(moves) for j in range(i)]
                 aux_alg = reduxAlg(aux_alg)
                 if len(aux_alg) == i and not tuple(aux_alg) in self.algs[i]:
                     self.algs[i].add(tuple(aux_alg))
                     self.cubes[i].add(self.cube.doAlgorithm(aux_alg))
                     samples += 1
-                else:
+                elif self.distance_pos[i] != 0:
+                    if len(self.cubes[i]) >= self.distance_pos[i]:
+                        stall_count += 1
+                j += 1
+                if debug and j%100000 == 0 and j != 0:
+                    print(f"DEBUG: iteration {j} with {len(self.cubes[i])} data points at depth {i}")
 
-                stall_count += 1
-                #exit if samples > self.max_samples or (samples < len(moves) and i == 1)
             total_samples += len(self.cubes[i])
-            print(f"DEBUG: depth {i} reached")
+            if debug:
+                print(f"DEBUG: depth {i} reached, generated {len(self.cubes[i])} datapoints")
         return total_samples
 
 
@@ -109,13 +134,13 @@ class Rubik_train_data:
         return result
 
 def gen_data():
-    data = Rubik_train_data(3, 20, 100000)
+    data = Rubik_train_data(3, 20, 75000)
 
-    cubes = data.prepare_data()
+    cubes = data.prepare_data(debug=True)
     print(f"Generated {cubes} data points")
 
     data_purged = data.cleanup_data()
-    print(f"Got rid of {data_purged} data points before expanding the data")
+    print(f"Got rid of {data_purged} data points")
 
     #data_expanded = data.expand_data()
     #print(f"Generated {data_expanded} new data points")

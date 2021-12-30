@@ -5,7 +5,7 @@ import time
 from datetime import datetime
 
 class WebcamVideoStream:
-	def __init__(self, src=0):
+	def __init__(self, fps=30, src=0):
 		# initialize the video camera stream and read the first frame
 		# from the stream
 		self.stream = cv2.VideoCapture(src)
@@ -14,6 +14,7 @@ class WebcamVideoStream:
 		# initialize the variable used to indicate if the thread should
 		# be stopped
 		self.stopped = False
+		self.fps = fps
 
 	def start(self):
 		# start the thread to read frames from the video stream
@@ -28,7 +29,7 @@ class WebcamVideoStream:
 				return
 
 			# otherwise, read the next frame from the stream
-			(self.grabbed, self.frame) = self.stream.read(); time.sleep(1/30)
+			self.grabbed, self.frame = self.stream.read(); time.sleep(1/self.fps)
 
 
 	def read(self):

@@ -22,12 +22,13 @@ class Cube:
         the cube will be initialized to a solved state
         """
         self.size = size
-        self.faces = faces
 
-        if self.faces is None:
-            self.faces = np.ones([6,3,3], dtype=np.uint8)
+        if faces is None:
+            self.faces = np.ones([6,3,3], dtype=np.int32)
             for i in range(6):
                 self.faces[i] *= i
+        else:
+            self.faces = np.array(faces)
 
     def get_lin_face_data(self):
         """
@@ -57,7 +58,7 @@ class Cube:
         for face in range(6):
             for row in range(self.size):
                 for color in range(self.size):
-                    new_faces[face, row, color] = color_map[color]
+                    new_faces[face, row, color] = color_map[self.faces[face, row, color]]
 
         return Cube(self.size, new_faces)
 
@@ -108,7 +109,7 @@ class Cube:
         Does a turn a certain number of turns on the upper face of the cube
         """
         times = times%4
-        new_faces = self.faces.copy() #copy.deepcopy(self.faces)
+        new_faces = self.faces.copy()
 
         if times != 0:
             new_faces[0] = mM.turnM(self.faces[0],-times)
@@ -130,7 +131,7 @@ class Cube:
         Rotates the cube around the x axis
         """
         times = times%4
-        new_faces = copy.deepcopy(self.faces)
+        new_faces = self.faces.copy()
         if times != 0:
             # 1 time,  rotate: {0,4}
             # 2 times, rotate: {0,4} + {2,0} = {4,2}
@@ -156,7 +157,7 @@ class Cube:
         Rotates the cube around the y axis
         """
         times = times%4
-        new_faces = copy.deepcopy(self.faces)
+        new_faces = self.faces.copy()
         if times != 0:
             new_faces[0] = mM.turnM(self.faces[0],-times)
             new_faces[5] = mM.turnM(self.faces[5],times)
@@ -165,6 +166,7 @@ class Cube:
             for j in range(len(idx_changed)):
                 new_faces[idx_changed[j]] = self.faces[idx_changed[(j+times)%4]]
             #new_faces[idx_changed, 0] = self.faces[np.roll(idx_changed, (j+times%4)), 0]
+
         return Cube(self.size, new_faces)
 
     def Zturn(self, times):
@@ -173,7 +175,7 @@ class Cube:
         Rotates the cube around the z axis
         """
         times = times%4
-        new_faces = copy.deepcopy(self.faces)
+        new_faces = self.faces.copy()
         if times != 0:
             new_faces[4] = mM.turnM(self.faces[4],times)
             new_faces[2] = mM.turnM(self.faces[2],-times)

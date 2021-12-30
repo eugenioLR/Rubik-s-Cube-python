@@ -29,7 +29,7 @@ class NeuralNetwork(nn.Module):
     Neural network with 3 hidden layers of the following sizes:
     54 -> 40 -> 35 -> 30 -> 20
     """
-    def __init__(self, input_size, num_classes = 20):
+    def __init__(self, input_size, num_classes = 21):
         super(NeuralNetwork, self).__init__()
 
         self.layer_sizes = [
@@ -152,7 +152,7 @@ def main():
     cube_data = np.loadtxt("NN_input.csv", delimiter=',')
 
     #REDUCE SIZE ONLY DEBUG
-    cube_data = cube_data[:1000, :]
+    #cube_data = cube_data[:1000, :]
 
     cube_data = torch.from_numpy(cube_data)
 
@@ -172,15 +172,16 @@ def main():
     #inputs = colors_in_face.float()
 
     # Targets
-    targets1 = np.loadtxt("NN_target.csv", delimiter=',')
+    targets_original = np.loadtxt("NN_target.csv", delimiter=',')
 
     #REDUCE SIZE ONLY DEBUG
-    targets1 = targets1[:1000]
+    #targets_original = targets_original[:1000]
 
-    range_rep = np.transpose(np.matlib.repmat(np.arange(1,21), len(targets1), 1))
-    targets = np.equal(np.matlib.repmat(targets1, 20, 1), range_rep)
+    range_rep = np.transpose(np.matlib.repmat(np.arange(0,21), len(targets_original), 1))
+    targets = np.equal(np.matlib.repmat(targets_original, 21, 1), range_rep)
     targets = np.transpose(targets)
     targets = torch.from_numpy(targets).long()
+    targets_original = torch.from_numpy(targets_original)
 
     ## Parameters
     input_len = inputs.shape[1]
@@ -213,8 +214,7 @@ def main():
     print(f"NN architecture: {model.layer_sizes}")
 
     ## Loss and optimizer
-    #criterion = nn.CrossEntropyLoss()
-    criterion = nn.L2Loss()
+    criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr=learning_rate)
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=100, gamma=0.2)
 
@@ -274,13 +274,15 @@ def main():
 
                     #gradient descent
                     optimizer.step()
-                test_count += 1
-                test_acc += check_accuracy(test_loader_split, model, device)
+
+
+                if info_flag:
+                    test_acc += check_accuracy(test_loader_split, model, device)
 
             test_history.append(test_acc)
+            print()
+            print(f"Epoch: {i}, stall: {counter}")
             if info_flag:
-                print()
-                print(f"Epoch: {i}, stall: {counter}")
                 pred_range, mse, acc = show_stats(test_loader, model, device)
                 val_history.append(acc)
                 mse_history.append(mse)
@@ -294,11 +296,11 @@ def main():
     #if info_flag:
         #display_acc(test_history, mse_hist = dev_history)
 
-    if input("save model?(Y/N): ").upper() == 'Y':
-        # Check accuracy
-        print("On all data:")
-        show_stats(dataset_loader, model, device)
+    # Check accuracy
+    print("On all data:")
+    show_stats(dataset_loader, model, device)
 
+    if input("save model?(Y/N): ").upper() == 'Y':
         torch.save(model, '3x3HeuristicModel.pt')
         print("Model saved")
 
@@ -330,8 +332,8 @@ def dynamic_display_acc(fig, ax1, ax2, test_hist, val_hist, mse_hist):
     ax1.lines[1].set_data(np.arange(0, len(test_hist)),val_hist)
     ax1.relim()
     ax1.autoscale_view()
-    ax1.xlabel("epoch")
-    ax1.ylabel("accuracy")
+    #ax1.xlabel("epoch")
+    #ax1.ylabel("accuracy")
     ax1.legend(["test data", "all data"])
     fig.canvas.draw_idle()#plt.draw()
 
@@ -340,10 +342,9 @@ def dynamic_display_acc(fig, ax1, ax2, test_hist, val_hist, mse_hist):
     ax2.lines[0].set_data(np.arange(0, len(test_hist)),mse_hist)
     ax2.relim()
     ax2.autoscale_view()
-    ax2.xlabel("epoch")
-    ax2.ylabel("MSE")
+    #ax2.xlabel("epoch")
+    #ax2.ylabel("MSE")
     fig.canvas.draw_idle()#plt.draw()
-
     fig.canvas.flush_events()
 
     plt.pause(0.000001)

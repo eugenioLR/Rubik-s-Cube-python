@@ -5,3 +5,5 @@ __pycache__
 cubeGUI.py
 *.csv
 *.pt
+*.bak
+*.svm
