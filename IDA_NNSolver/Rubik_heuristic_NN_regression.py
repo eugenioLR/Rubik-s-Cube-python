@@ -1,6 +1,4 @@
-import sys
-sys.path.append("..")
-
+from . import *
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -161,13 +159,8 @@ def main():
     colors_in_face = torch.stack(colors_in_face)
 
     # Corners
-    #indices = torch.tensor([0,2,6,8])
-    #indices = torch.cat([indices+(9*i) for i in range(6)])
-    #corners = cube_data[:,indices]
 
     inputs = torch.cat([cube_data, colors_in_face], dim=1).float()
-    #inputs = torch.cat([corners, colors_in_face], dim=1).float()
-    #inputs = colors_in_face.float()
 
     # Targets
     targets = np.loadtxt("NN_target.csv", delimiter=',')

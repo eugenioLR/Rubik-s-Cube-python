@@ -1,0 +1,27 @@
+Average execution time depending on the number of moves of the initial scramble.
+We run the algorithm 100 times and take the average time.
+We stop the algorithm if it takes more than 2 minutes.
+
+
+IDA*-NN:
+    [With '3x3HeuristicModel_best2.pt']
+    8 moves: 76.18138150930405
+    7 moves: 11.261282019615173
+    6 moves: 3.444949471950531
+    5 moves: 0.9005028986930848
+    4 moves: 0.40412661552429197
+    3 moves: 0.21874078512191772
+    2 moves: 0.17837646961212159
+
+    []
+
+IDA*:
+    6 moves: 69.78236905097961 (sometimes above 2 minutes)
+    5 moves: 17.6235014462471
+    4 moves: 2.138054986000061
+    3 moves: 0.6041456270217895
+    2 moves: 0.14481372833251954
+
+Korf:
+    [Not implemented yet]
+    5 moves:

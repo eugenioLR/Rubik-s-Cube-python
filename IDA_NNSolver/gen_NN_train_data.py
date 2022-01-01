@@ -1,9 +1,10 @@
 import sys
-sys.path.append("..")
+sys.path.append('..')
 
-from Cube import Cube
+from Cube import *
 from rubikNotation import *
-import random
+import time
+from pathlib import Path
 
 # This will get the data to train a Neural network
 # that will get an heuristic that will be used
@@ -18,9 +19,9 @@ class Rubik_train_data:
         self.data = {}
         self.depth = depth
         self.max_samples = max_samples
-        # To avoid inifite loops, it can be done better...
         self.max_stall = 10000
         self.max_stall_unknown = max_samples
+
         # check the last table in: https://cube20.org/ and https://www.cs.princeton.edu/courses/archive/fall06/cos402/papers/korfrubik.pdf
         # number of cube states by distance
         self.distance_pos = {
@@ -36,35 +37,54 @@ class Rubik_train_data:
         for i in range(7, 22):
             self.distance_pos[i] = 0
 
+    def get_random_alg(self, times):
+        result = []
+        moves = ['U', 'D', 'L', 'R', 'F', 'B']
+        moves = [i+modif for i in moves for modif in ('', '\'', '2')]
+        last_moves = ['--', '--']
+        opposite = {'R':'L', 'L':'R', 'U':'D', 'D':'U', 'F':'B', 'B':'F', '-':'|'}
 
+        for i in range(times):
+            moves_cleaned = []
+            for i in moves:
+                aux_move = last_moves[1][0]
+                prev_move = last_moves[0][0]
+                if i[0] != aux_move:
+                    if aux_move == opposite[prev_move]:
+                        if i not in (aux_move, opposite[aux_move]):
+                            moves_cleaned.append(i)
+                    else:
+                        moves_cleaned.append(i)
+
+            move = random.choice(moves_cleaned)
+
+            result.append(move)
+            last_moves.pop(0) # dequeue second to last move
+            last_moves.append(move) # enqueue last move
+        return result
 
     def prepare_data(self, debug = False):
 
         # generate a large amount of random cubes that are 'depth' moves away from being solved
-        moves = ['U', 'D', 'L', 'R', 'F', 'B']
-        moves = [i+modif for i in moves for modif in ('', '\'', '2')]
-        aux_alg = []
         self.cubes[0] = set([self.cube])
-        self.algs[0] = [['']]
         total_samples = 1
         for i in range(1, self.depth+1):
             self.algs[i] = set()
             self.cubes[i] = set()
             samples = 0
             stall_count = 0
-            max_stall = self.max_stall
             if i > 6:
                 max_stall = self.max_stall_unknown
+            else:
+                max_stall = self.max_stall
             j = 0
-            while(samples < self.max_samples and stall_count < max_stall):
-                aux_alg = [random.choice(moves) for j in range(i)]
-                aux_alg = reduxAlg(aux_alg)
-                if len(aux_alg) == i and not tuple(aux_alg) in self.algs[i]:
-                    self.algs[i].add(tuple(aux_alg))
-                    self.cubes[i].add(self.cube.doAlgorithm(aux_alg))
+            while samples < self.max_samples and stall_count < max_stall:
+                aux_alg = self.get_random_alg(i)
+                new_cube = self.cube.doAlgorithm(aux_alg)
+                if not new_cube in self.cubes[i]:
+                    self.cubes[i].add(new_cube)
                     samples += 1
-                elif self.distance_pos[i] != 0:
-                    if len(self.cubes[i]) >= self.distance_pos[i]:
+                elif self.distance_pos[i] != 0 and len(self.cubes[i]) >= self.distance_pos[i]:
                         stall_count += 1
                 j += 1
                 if debug and j%100000 == 0 and j != 0:
@@ -76,16 +96,21 @@ class Rubik_train_data:
         return total_samples
 
 
-    def cleanup_data(self):
-        # Removes cubes that we believed to be solved in 'i' moves
-        # but in reality could be solved faster.
+    def cleanup_data(self, debug = False):
+        # Removes cubes that were believed to be solved in 'i' moves
+        # but could be solved in less moves.
         diff = new_len = orig_len = 0
-        for i in reversed(self.cubes):
-            for j in reversed(range(1, i)):
+
+        for i in range(len(self.cubes)-1, 0, -1):
+            for j in range(i-1, -1, -1):
                 orig_len = len(self.cubes[i])
                 self.cubes[i] = self.cubes[i].difference(self.cubes[j])
                 new_len = len(self.cubes[i])
                 diff += orig_len - new_len
+
+                if debug and orig_len - new_len > 0:
+                    amount = orig_len - new_len
+                    print(f"DEBUG: removed {amount} cube{'s' if amount > 1 else ''} solvable in {j} moves that {'were' if amount > 1 else 'was'} generated with {i} moves")
         return diff
 
     def expand_data(self):
@@ -113,7 +138,7 @@ class Rubik_train_data:
 
     def get_net_inputs(self):
         result = []
-        if len(self.algs) == 0:
+        if len(self.cubes) == 0:
             print("please prepare the input data first")
             return None
 
@@ -124,7 +149,7 @@ class Rubik_train_data:
 
     def get_net_targets(self):
         result = []
-        if len(self.algs) == 0:
+        if len(self.cubes) == 0:
             print("please prepare the input data first")
             return None
 
@@ -133,13 +158,13 @@ class Rubik_train_data:
         print(len(result))
         return result
 
-def gen_data():
-    data = Rubik_train_data(3, 20, 75000)
+def gen_data(max_depth=20, max_states=1000, debug=True):
+    data = Rubik_train_data(3, max_depth, max_states)
 
-    cubes = data.prepare_data(debug=True)
+    cubes = data.prepare_data(debug=debug)
     print(f"Generated {cubes} data points")
 
-    data_purged = data.cleanup_data()
+    data_purged = data.cleanup_data(debug=debug)
     print(f"Got rid of {data_purged} data points")
 
     #data_expanded = data.expand_data()
@@ -153,16 +178,21 @@ def gen_data():
     inputs = data.get_net_inputs()
     targets = data.get_net_targets()
 
-    with open("NN_input.csv", "w") as file_in:
+    path = str(Path(__file__).resolve().parent) + "/"
+    with open(path + "NN_input_full.csv.trash", "w") as file_in:
         for i in inputs:
             file_in.write(",".join([str(j) for j in i]))
             file_in.write("\n")
 
-    with open("NN_target.csv", "w") as file_targ:
+    with open(path + "NN_target_full.csv.trash", "w") as file_targ:
         file_targ.write(str(targets[0]))
         for i in targets[1:]:
             file_targ.write(",")
             file_targ.write(str(i))
 
 if __name__ == '__main__':
-    gen_data()
+    # Go crazy with the amount of data, you can take a subset of the total data after that
+    start = time.time()
+    gen_data(20, 400000)
+    end = time.time()
+    print(f"Time spent: {end-start}")

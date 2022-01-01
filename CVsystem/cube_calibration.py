@@ -1,15 +1,7 @@
-import sys
-sys.path.append("..")
-
-from Cube import *
-from matrixMethods import *
-from image_to_cube import *
-from video_input import *
-from Solver import *
-from matplotlib import pyplot as plt
-import time
 import traceback
-import threading
+from .video_input import WebcamVideoStream
+from .image_processing_utils import *
+from . import *
 
 close_flag = False
 
@@ -19,6 +11,16 @@ def on_close(event):
 
 color_names = {0:"white", 1:"red", 2:"blue", 3:"orange", 4:"green", 5:"yellow", -2: "gray", -1:"purple?"}
 
+def face_equal_norot(face1, face2):
+    are_equal = False
+    i = 0
+    while i < 4 and not are_equal:
+        are_equal = are_equal or (face1 == np.rot90(face2, i)).all()
+        i += 1
+
+    return are_equal
+
+
 class Cube_calibrator:
     def __init__(self, fps=30, confirm_time=2.5):
         self.last_face = -1
@@ -26,9 +28,10 @@ class Cube_calibrator:
         self.calibrated = False
         self.solution_found = False
         self.finished = False
-        self.solver_type = 'Korf'
+        self.solver_type = 'IDA*-NN'
 
         self.cube = Cube(3)
+        self.cube_next = None
         self.cam = WebcamVideoStream(fps=fps)
 
         self.fps = fps
@@ -61,6 +64,17 @@ class Cube_calibrator:
 
             indicator_x = indicator_x + offset[1]
             indicator_y = indicator_y + offset[0]
+        elif shape_type == 'arrow_circle':
+            #rad_rot = np.pi*rotation/180
+            theta = np.linspace(0, 3*np.pi/2, 100)
+            #theta = theta + rad_rot
+            indicator_x = scale*np.hstack([np.cos(theta), [0.2, -0.2, 0.2, -0.2, 0.2]])
+            indicator_y = scale*np.hstack([np.sin(theta), [-1, -0.5, -1, -1.5, -1]])
+            if rotation == 180:
+                indicator_x = -indicator_x
+
+            indicator_x = indicator_x + offset[1]
+            indicator_y = indicator_y + offset[0]
         elif shape_type == 'dash':
             indicator_x = scale*np.array([-1,1]) + offset[1]
             indicator_y = scale*np.array([0, 0]) + offset[0]
@@ -76,7 +90,8 @@ class Cube_calibrator:
             fig = plt.figure()
             fig.canvas.mpl_connect('close_event', on_close)
             ax = plt.subplot()
-            I_rgb = cv2.imread("rubiks_cube_photo.png")
+            path = str(Path(__file__).resolve().parent) + "/"
+            I_rgb = cv2.imread(path+"rubiks_cube_photo.png")
             im = ax.imshow(np.zeros(I_rgb.shape))
             indic, = ax.plot([0,0],[0,0], linewidth=10)
             plt.show()
@@ -93,6 +108,8 @@ class Cube_calibrator:
             prev_face = np.zeros([1,1])
             colors_checked = []
             faces = []
+            solution = []
+            alpha = 1
 
             # Main loop
             while not self.finished and not close_flag:
@@ -106,6 +123,7 @@ class Cube_calibrator:
                 ## Image Aquisition
                 frame_original = self.cam.read()
 
+                # The original image will be in BGR, we transform it to RGB
                 frame_original = cv2.cvtColor(frame_original, cv2.COLOR_BGR2RGB)
 
                 if phone:
@@ -113,23 +131,20 @@ class Cube_calibrator:
 
 
                 ## Pre-processing
-                frame = cv2.cvtColor(frame_original, cv2.COLOR_RGB2HSV)
+                frame_hsv = cv2.cvtColor(frame_original, cv2.COLOR_RGB2HSV)
 
                 #frame = cv2.fastNlMeansDenoisingColored(frame, None, 10,10,7,21) # Too slow for real time, but gives the best results
-                frame = cv2.medianBlur(frame, 9)
-
-                frame = cv2.cvtColor(frame, cv2.COLOR_HSV2RGB)
+                frame_hsv = cv2.medianBlur(frame_hsv, 9)
+                #frame_hsv[:,:,2] = cv2.equalizeHist(frame_hsv[:,:,2], None, 0, 255, cv2.NORM_MINMAX, cv2.CV_8UC1)
 
 
                 ## Extraction of characteristics
-                frame_bw = binarize(frame)
+                frame_bw = binarize(frame_hsv)
                 contours, positions = find_contours(frame_bw, debug = False)
 
 
                 ## Description
-                face, face_positions = get_ordered_colors(frame, contours, debug = False)
-
-
+                face, face_positions = get_ordered_colors(frame_hsv, contours, debug = False)
 
                 self.calibrated = True
                 ## User interaction
@@ -139,6 +154,7 @@ class Cube_calibrator:
                 indicator_x = []
                 indicator_y = []
                 indicator_color = "w"
+                linestyle = "solid"
 
                 if not self.calibrated:
                     ## Phase 1: Obtain the colors of the faces
@@ -192,7 +208,14 @@ class Cube_calibrator:
                             indicator_x, indicator_y = self.get_shape_coords("arrow", indic_size, indicator_offset, 0, 0)
                         indicator_color = "w"
 
-                    # Draw indicator
+
+                    # Show color text
+                    if face_positions is not None:
+                        face_list = face.flatten()
+
+                        for i in range(face_positions.shape[1]):
+                            ax.annotate(color_names[face_list[i]], face_positions[:,i], color='white', size=10, ha='center')
+
 
 
                 elif not self.solution_found:
@@ -200,7 +223,8 @@ class Cube_calibrator:
 
                     if self.solver is None:
                         # Launch the solver thread
-                        self.cube = Cube(3).doAlgorithm(['U2', 'B2', 'R', 'L'])
+                        #self.cube = Cube(3).doAlgorithm(['U2', 'B2', 'R', 'L'])
+                        self.cube = Cube(3).doAlgorithm(['U\'', 'F\''])
                         #self.cube = self.arrange_cube(faces, colors_checked)
                         self.solver = Cube_solver_thread(self.cube, self.solver_type)
                         self.solver.setDaemon(True)
@@ -212,7 +236,10 @@ class Cube_calibrator:
                         plt.title("Showing cube solution")
                         print("nice")
                         print(self.solver.solution)
+                        solution = self.solver.solution
+                        solution.append("--")
                         self.solution_found = True
+                        self.cube_next = self.cube.turn(solution[0])
                     else:
                         # The solver is not done yet, be nice to the user, they might get impatient
                         plt.title("Solving cube...")
@@ -220,27 +247,94 @@ class Cube_calibrator:
                         # Show rotating section of a circle
                         indicator_x, indicator_y = self.get_shape_coords("circle", indic_size, indicator_offset, 0.2, (time.time() - solution_timer)*180)
                         indicator_color = "white"
-                else:
+                elif solution[0] != 'Incorrect cube solver' and solution[0] != '--':
                     ## Phase 3: Show solution steps
-                    print("showing moves")
+
+                    plt.title("Showing solution")
+
+                    # TODO: the current face shows the orientation, this face is the "front" face
+                    # we know the color is face[1,1] adn we can test the 4 rotations to know how out cube is oriented
+                    # with something like an "inverse normalization"
+
+                    has_bad_colors = False
+
+                    if face.ndim == 2:
+                        has_bad_colors = (face < 0).any()
+                        if has_bad_colors:
+                            print("Bad colors found")
+
+                    if face.ndim == 2 and not has_bad_colors:
+
+                        face_color = int(face[1,1])
+
+                        transform, unique = self.cube.face_to_front(face)
+
+
+                        relative_move = transformAlg([solution[0]], transform)[0]
+                        #print(f"face of color {color_names[int(face[1,1])]} found")
+
+
+
+                        if relative_move[0] not in ['B', 'F'] and face_equal_norot(self.cube_next.faces[face_color,:,:], face):
+                            # The user has performed the correct move
+
+                            indicator_x, indicator_y = self.get_shape_coords("circle", indic_size, indicator_offset, 2*(time.time() - face_confirm_timer)/self.confirm_time, 0)
+                            indicator_color = "orange"
+
+                            if time.time() - face_confirm_timer > self.confirm_time/2:
+                                self.cube = self.cube.turn(solution.pop(0))
+                                self.cube_next = self.cube_next.turn(solution[0])
+
+                        elif face_equal_norot(self.cube.faces[face_color,:,:], face):
+                            face_confirm_timer = time.time()
+
+                            face_pos_aux = face_positions[[1,0],:]
+                            rot = 0
+                            indic_size = 80
+                            if relative_move[-1] == "'":
+                                rot = 180
+
+
+
+                            # We have to show the user the correct turn to make
+                            if relative_move[0] == 'U':
+                                indicator_x, indicator_y = self.get_shape_coords("arrow", indic_size, face_pos_aux[:,1], 0, (180+rot)%360)
+                            elif relative_move[0] == 'D':
+                                indicator_x, indicator_y = self.get_shape_coords("arrow", indic_size, face_pos_aux[:,7], 0, (rot)%360)
+                            elif relative_move[0] == 'R':
+                                indicator_x, indicator_y = self.get_shape_coords("arrow", indic_size, face_pos_aux[:,5], 0, 90 + rot)
+                            elif relative_move[0] == 'L':
+                                indicator_x, indicator_y = self.get_shape_coords("arrow", indic_size, face_pos_aux[:,3], 0, 270 - rot)
+                            elif relative_move[0] == 'F':
+                                indicator_x, indicator_y = self.get_shape_coords("arrow_circle", indic_size, face_pos_aux[:,4], 0, rot)
+                            elif relative_move[0] == 'B':
+                                indicator_x, indicator_y = self.get_shape_coords("arrow_circle", indic_size, face_pos_aux[:,4], 0, (180+rot)%360)
+                                linestyle = "dashed"
+                            indicator_color = "#66ccff"
+
+
+                            if relative_move[0] in ['B', 'F']:
+                                ax.annotate("Change face please", face_positions[:,4], color='white', size=10, ha='center')
+
+
+                    else:
+                        face_confirm_timer = time.time()
+
+
+                    ax.annotate(" ".join(solution[:-1]), (indicator_offset[1], indicator_offset[0]),  color='white', size=15, ha='center')
+
+
+                else:
+                    # Phase 4: We are done, close the app
                     self.finished = True
 
-                ax.plot(indicator_x, indicator_y, indicator_color, linewidth = 6)
+                # Draw indicator
+                ax.plot(indicator_x, indicator_y, indicator_color, linewidth = 6, linestyle = linestyle)
 
 
                 ## Display
                 im = ax.imshow(np.zeros(I_rgb.shape))
                 im.set_data(frame_original)
-
-                # Show color text
-                if face_positions is not None:
-                    face_list = face.flatten()
-
-                    for i in range(face_positions.shape[1]):
-                        ax.annotate(color_names[face_list[i]], face_positions[:,i] + np.array([0,40]), color='white', size=10)
-
-                    #for i in range(positions.shape[1]):
-                    #    ax.annotate(color_names[face_list[i]], positions[:,i] + np.array([0,40]), color='white', size=10)
 
                 # Update plot
                 fig.canvas.draw_idle()
@@ -269,8 +363,8 @@ class Cube_calibrator:
     def arrange_cube(self, faces, colors):
         opposites = {0:5,1:3,2:4,3:1,5:0}
 
-        faces[0] = turnM(faces[0],-1)
-        faces[5] = turnM(faces[5],2)
+        faces[0] = np.rot90(faces[0],3)
+        faces[5] = np.rot90(faces[5],2)
 
         return Cube(3, faces)
 

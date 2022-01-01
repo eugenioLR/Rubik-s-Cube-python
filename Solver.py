@@ -1,11 +1,16 @@
 from Cube import Cube
 from rubikNotation import *
 import numpy as np
-from IDA_neural_solver.IDA_neural_solver import *
-from Korf_solver.Korf_solver import *
 import time
 from pathlib import Path
 import threading
+
+from IDA_NNSolver.Rubik_heuristic_NN import *
+from IDA_NNSolver.IDA_NNSolver import *
+
+from IDA_Solver.IDA_Solver import *
+
+from Korf_Solver.Korf_Solver import *
 
 class Cube_solver_thread(threading.Thread):
     def __init__(self, cube, implementation="IDA_neural"):
@@ -13,68 +18,63 @@ class Cube_solver_thread(threading.Thread):
         self.cube = cube
         self.solution_found = False
         self.solution = None
+        self.transform = None
         self.implementation = implementation
 
     def run(self):
         # Set implementation
         if self.implementation == 'Korf':
             solver = Korf_Solver()
-        elif self.implementation == 'IDA_neural':
-            solver = IDA_Neural_Solver()
+        elif self.implementation == 'IDA*-NN':
+            solver = IDA_NNSolver()
+        elif self.implementation == 'IDA*':
+            solver = IDA_Solver()
+        elif self.implementation == 'RNN':
+            print("Not implemented yet")
+            solver = None
         else:
             solver = None
 
         # If there is no solver return just an U
         if solver is None:
-            self.solution = ['U']
+            self.solution = ['Incorrect cube solver']
         else:
             node, t = solver.solve_cube(self.cube, debug=True)
             self.solution = reduxAlg(node[-1].alg)
+            self.transform = t
+            self.nodes_generated = solver.nodes_generated
 
         self.solution_found = True
 
 
-def test_solver(moves = 6, alg = None):
-    a = Cube_solver()
+def test_solver(moves, implementation, alg = None):
+    c = Cube(3).scramble(moves)
+    solver = Cube_solver_thread(c, implementation)
 
-    if alg is None:
-        c = Cube(3).scramble(moves)
+    start = time.time()
+    solver.start()
+    solver.join(120)
+    end = time.time()
+
+    if solver.solution_found:
+        print(solver.solution)
+        print(c.toStringColor())
+        print("Is it optimal?: ", len(solver.solution) <= moves)
+        print(f"Time taken: {end-start}s")
+        print(f"Nodes generated: {solver.nodes_generated}")
     else:
-        c = Cube(3).doAlgorithm(alg)
+        print("Took way too much")
+    return end - start
 
-    node, t = a.solve_cube(c)
-    print(node[-1].alg)
-    print(reduxAlg(node[-1].alg))
-    print(c.toString())
-    print(node[-1].cube.toString())
-    print("Is it optimal?: ", len(node[-1].alg) <= moves)
-
-def test_solver_time(moves = 6):
+def test_solver_time(moves, implementation):
     tim = 0
     for i in range(100):
-        start = time.time()
-        test_solver(moves = moves)
-        #test_solver(alg = ['U','R','F','D','F','U\''])
-        end = time.time()
-        print("time taken:", end-start)
-        tim += end-start
+        print(f"\nSolving cube {i} using {implementation}")
+        tim += test_solver(moves, implementation)
     print("avg time", tim/100)
 
 
 if __name__ == '__main__':
-    test_solver(8)
-    #test_solver_time(6)
-
-    #NN1: 7.51s
-    #NN2: 3.2s
-    #NN3: 5.42s
-    #NN4: 1.09
-    #NN2(symmetry): 0.81
-
-
-    #eval_nn()
-    #a = Cube_solver().nn_heuristic(Cube(3))
-
-    # Real example
-    #cube_faces = [0, 5, 5, 1, 0, 4, 2, 5, 3, 2, 4, 3, 4, 1, 1, 0, 0, 1, 0, 2, 2, 0, 2, 3, 4, 2, 5, 5, 0, 4, 2, 3, 2, 4, 5, 5, 3, 3, 1, 1, 4, 3, 1, 5, 3, 0, 0, 1, 3, 5, 1, 4, 4, 2]
-    #cube_faces = np.resize(cube_faces, [6,3,3])
+    #test_solver(10)
+    test_solver_time(3, 'IDA*-NN')
+    # time spent 6681.240522623062 = 1 hour 51 minutes 21 seconds

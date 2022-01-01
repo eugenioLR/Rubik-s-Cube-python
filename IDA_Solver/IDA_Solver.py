@@ -1,10 +1,11 @@
 from Cube import Cube
+from Cube3d import Cube3d
 from rubikNotation import *
 import numpy as np
 import time
 from pathlib import Path
 import threading
-
+import random
 
 class Cube_node:
     """
@@ -15,18 +16,11 @@ class Cube_node:
         self.cube = cube
         self.alg = alg
 
-class Cube_piece:
-    def __init__(self, pos, colors):
-        self.pos = pos
-        self.colors = colors
-
-    def dist_to_solution(self, piece_pos):
-        pass
-
-class Korf_Solver:
+class IDA_Solver:
     # https://www.cs.princeton.edu/courses/archive/fall06/cos402/papers/korfrubik.pdf
     def __init__(self):
         self.min = 100
+        self.nodes_generated = 0
 
     # We are going to use IDA* (iterative deepening A*)
     def solve_cube(self, cube, debug = False):
@@ -67,10 +61,14 @@ class Korf_Solver:
         # Add al variations of the move
         moves = [i+modif for i in moves for modif in ('', '\'', '2')]
 
+        # Experimental
+        random.shuffle(moves)
+
         for succ in moves:
             new_cube = node.cube.turn(succ)
             #if new_cube not in [i.cube for i in path]:
             if self.already_checked(new_cube, path) and len(reduxAlg(node.alg + [succ])) == len(node.alg + [succ]):
+                self.nodes_generated += 1
                 path.append(Cube_node(new_cube, node.alg + [succ]))
                 t = self.__IDAstar_search(path, g+1, bound, succ[0])
                 if t == -1:
@@ -105,33 +103,3 @@ class Korf_Solver:
         corner_distance, edge_distance = c3d.dist_to_solution()
 
         return int(max(corner_distance/4, edge_distance/4))
-
-def test_solver(moves = 6, alg = None):
-    a = Korf_Solver()
-
-    if alg is None:
-        c = Cube(3).scramble(moves)
-    else:
-        c = Cube(3).doAlgorithm(alg)
-
-    node, t = a.solve_cube(c)
-    print(node[-1].alg)
-    print(reduxAlg(node[-1].alg))
-    print(c.toString())
-    print(node[-1].cube.toString())
-    print("Is it optimal?: ", len(node[-1].alg) <= moves)
-
-def test_solver_time(moves = 6):
-    tim = 0
-    for i in range(100):
-        start = time.time()
-        test_solver(moves = moves)
-        #test_solver(alg = ['U','R','F','D','F','U\''])
-        end = time.time()
-        print("time taken:", end-start)
-        tim += end-start
-    print("avg time", tim/100)
-
-
-if __name__ == '__main__':
-    test_solver(8)

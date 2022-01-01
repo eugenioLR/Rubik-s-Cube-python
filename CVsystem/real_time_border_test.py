@@ -1,4 +1,4 @@
-from image_to_cube import *
+from image_processing_utils import *
 from video_input import *
 import time
 from scipy.signal.signaltools import wiener

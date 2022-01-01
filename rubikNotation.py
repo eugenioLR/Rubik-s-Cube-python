@@ -101,21 +101,23 @@ def turnMov(mov, turn):
             transMap['y'] = 'z\''
             transMap['z'] = 'y'
 
+
     if turn[0] == 'y':
         transMap['U'] = 'U'
         transMap['D'] = 'D'
         transMap['E'] = 'E'
 
         if turn[-1] == "'":
-            transMap['R'] = 'F'
-            transMap['L'] = 'B'
+            transMap['R'] = 'B'
+            transMap['L'] = 'F'
             transMap['M'] = 'M'
-            transMap['F'] = 'L'
-            transMap['B'] = 'R'
+            transMap['F'] = 'R'
+            transMap['B'] = 'L'
             transMap['S'] = 'S'
-            transMap['x'] = 'z\''
-            transMap['y'] = ''
-            transMap['z'] = 'x\''
+            transMap['x'] = 'z'
+            transMap['y'] = 'y2'
+            transMap['z'] = 'x'
+
         elif turn[-1] == "2":
             transMap['R'] = 'L'
             transMap['L'] = 'R'
@@ -127,15 +129,15 @@ def turnMov(mov, turn):
             transMap['y'] = 'y\''
             transMap['z'] = 'z\''
         else:
-            transMap['R'] = 'B'
-            transMap['L'] = 'F'
+            transMap['R'] = 'F'
+            transMap['L'] = 'B'
             transMap['M'] = 'M'
-            transMap['F'] = 'R'
-            transMap['B'] = 'L'
+            transMap['F'] = 'L'
+            transMap['B'] = 'R'
             transMap['S'] = 'S'
-            transMap['x'] = 'z'
-            transMap['y'] = 'y2'
-            transMap['z'] = 'x'
+            transMap['x'] = 'z\''
+            transMap['y'] = ''
+            transMap['z'] = 'x\''
 
     if turn[0] == 'z':
         transMap['F'] = 'F'
@@ -143,15 +145,15 @@ def turnMov(mov, turn):
         transMap['S'] = 'S'
 
         if turn[-1] == "'":
-            transMap['R'] = 'D'
-            transMap['L'] = 'U'
+            transMap['R'] = 'U'
+            transMap['L'] = 'D'
             transMap['M'] = 'M'
-            transMap['U'] = 'R'
-            transMap['D'] = 'L'
+            transMap['U'] = 'L'
+            transMap['D'] = 'R'
             transMap['E'] = 'E'
-            transMap['x'] = 'y'
-            transMap['y'] = 'x\''
-            transMap['z'] = ''
+            transMap['x'] = 'y\''
+            transMap['y'] = 'x'
+            transMap['z'] = 'z2'
         elif turn[-1] == "2":
             transMap['R'] = 'L'
             transMap['L'] = 'R'
@@ -163,15 +165,16 @@ def turnMov(mov, turn):
             transMap['y'] = 'y\''
             transMap['z'] = 'z\''
         else:
-            transMap['R'] = 'U'
-            transMap['L'] = 'D'
+            transMap['R'] = 'D'
+            transMap['L'] = 'U'
             transMap['M'] = 'M'
             transMap['U'] = 'R'
             transMap['D'] = 'L'
             transMap['E'] = 'E'
-            transMap['x'] = 'y\''
-            transMap['y'] = 'x'
-            transMap['z'] = 'z2'
+            transMap['x'] = 'y'
+            transMap['y'] = 'x\''
+            transMap['z'] = ''
+
 
     if transMap[mov[0]] == '':
         modifier = ''
@@ -184,6 +187,13 @@ def turnAlg(alg, rot):
     It results in the same normalized cube
     """
     return list(map(lambda x: turnMov(x, rot), alg))
+
+def transformAlg(alg, transform):
+    result = alg
+    for rotation in transform:
+        result = turnAlg(result, rotation)
+    return result
+
 
 def reduceAxisTurns(alg):
     result = []
@@ -260,7 +270,7 @@ def reduxAlgInv(alg):
 
     turnStr = {0:"0", 1:"", 2:"2", 3:"'"}
     turnNum = {"0":0, "":1, "2":2, "'":3}
-    opposite = {'R':'L', 'L':'R', 'U':'D', 'D':'U', 'F':'B', 'B':'F'}
+    opposite = {'R':'L', 'L':'R', 'U':'D', 'D':'U', 'F':'B', 'B':'F', 'x':'--', 'y':'--', 'z':'--'}
     aux = '-'
     aux_inv = '-'
     turn_aux = 0

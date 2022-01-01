@@ -2,7 +2,7 @@ import cv2
 import matplotlib
 matplotlib.use('TkAgg')
 from matplotlib import pyplot as plt
-from image_to_cube import *
+from image_processing_utils import *
 
 
 def draw_lines(theta, tol, threshold):

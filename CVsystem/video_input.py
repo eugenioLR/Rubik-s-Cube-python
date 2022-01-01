@@ -1,8 +1,7 @@
-# import the necessary packages
-from threading import Thread
 import cv2
 import time
 from datetime import datetime
+from threading import Thread
 
 class WebcamVideoStream:
 	def __init__(self, fps=30, src=0):

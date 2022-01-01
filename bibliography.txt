@@ -9,3 +9,6 @@ Lego solver, breif explanation of solving algorithms
 
 Online solver and explanation:
 -https://ruwix.com/the-rubiks-cube/herbert-kociemba-optimal-cube-solver-cube-explorer/
+
+Combining genetic algorithms and SVMs
+-http://www.sven-crone.com/papers/Lessmann,%20Stahlbock,%20Crone%20(2006)%20Genetic%20Algorithms%20for%20Support%20Vector%20Machine%20Model%20Selection%20-%20WCCI06%2001716515.pdf

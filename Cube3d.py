@@ -1,49 +1,53 @@
-from Cube import Cube
-from rubikNotation import *
-import numpy as np
+class Cube_piece:
+    def __init__(self, pos, colors):
+        self.pos = pos
+        self.colors = colors
+
+    def dist_to_solution(self, piece_pos):
+        pass
 
 class Cube_edge(Cube_piece):
     def __init__(self, colors):
         pos = -1
 
-        colors = sorted(colors)
+        colors_s = sorted(colors)
 
-        if colors[0] == 0:
-            if colors[1] == 4:
+        if colors_s[0] == 0:
+            if colors_s[1] == 4:
                 pos = [0,0,1]
-            elif colors[1] == 1:
+            elif colors_s[1] == 1:
                 pos = [0,1,0]
-            elif colors[1] == 3:
+            elif colors_s[1] == 3:
                 pos = [0,1,2]
-            elif colors[1] == 2:
+            elif colors_s[1] == 2:
                 pos = [0,2,1]
-            elif colors[1] == 5:
+            elif colors_s[1] == 5:
                 [2,1,0]
 
-        elif colors[0] == 1:
-            if colors[1] == 2:
+        elif colors_s[0] == 1:
+            if colors_s[1] == 2:
                 pos = [1,2,0]
-            elif colors[1] == 4:
+            elif colors_s[1] == 4:
                 pos = [1,0,0]
-            elif colors[1] == 5:
+            elif colors_s[1] == 5:
                 pos = [2,1,0]
 
 
-        elif colors[0] == 2:
-            if colors[1] == 3:
+        elif colors_s[0] == 2:
+            if colors_s[1] == 3:
                 pos = [1,2,2]
-            elif colors[1] == 4:
+            elif colors_s[1] == 4:
                 pos = [1,2,0]
-            elif colors[1] == 5:
+            elif colors_s[1] == 5:
                 pos = [2,0,1]
 
 
-        elif colors[0] == 3:
-            if colors[1] == 4:
+        elif colors_s[0] == 3:
+            if colors_s[1] == 4:
                 pos = [1,0,2]
-            elif colors[1] == 5:
+            elif colors_s[1] == 5:
                 pos = [2,1,2]
-        elif colors[0] == 4:
+        elif colors_s[0] == 4:
             pos = [2,2,1]
 
         super(Cube_edge, self).__init__(pos, colors)
@@ -63,26 +67,26 @@ class Cube_corner(Cube_piece):
     def __init__(self, colors):
         pos = -1
 
-        colors = sorted(colors)
+        colors_s = sorted(colors)
 
-        if colors[0] == 0:
-            if colors[1] == 1:
-                if colors[2] == 4:
+        if colors_s[0] == 0:
+            if colors_s[1] == 1:
+                if colors_s[2] == 4:
                     pos = [0,0,0]
-                elif colors[2] == 2:
+                elif colors_s[2] == 2:
                     pos = [0,0,2]
-            elif colors[1] == 2:
+            elif colors_s[1] == 2:
                 pos = [0,2,2]
-            elif colors[1] == 3:
+            elif colors_s[1] == 3:
                 pos = [0,2,0]
-        elif colors[0] == 1:
-            if colors[1] == 2:
+        elif colors_s[0] == 1:
+            if colors_s[1] == 2:
                 pos = [2,0,2]
-            elif colors[0] == 1:
+            elif colors_s[0] == 1:
                 pos = [2,0,0]
-        elif colors[0] == 2:
+        elif colors_s[0] == 2:
             pos = [2,2,2]
-        elif colors[0] == 3:
+        elif colors_s[0] == 3:
             pos = [2,2,0]
 
 
@@ -148,3 +152,26 @@ class Cube3d():
                         else:
                             edge_distance += self.pieces[i][j][k].dist_to_solution([i,j,k])
         return corner_distance, edge_distance
+
+    def find_piece_pos(self, colors):
+        result_pos = []
+        orig_colors = []
+        found = False
+        i = 0
+        while i < 3 and not found:
+            j = 0
+            while j < 3 and not found:
+                k = 0
+                while k < 3 and not found:
+                    if self.pieces[i][j][k] is not None:
+                        result_pos = [i,j,k]
+                        orig_colors = self.pieces[i][j][k].colors
+                        found = sorted(self.pieces[i][j][k].colors) == colors
+                    k += 1
+                j += 1
+            i += 1
+
+        if not found:
+            print("something went wrong")
+
+        return result_pos, orig_colors

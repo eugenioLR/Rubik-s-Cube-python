@@ -1,6 +1,3 @@
-import sys
-sys.path.append("..")
-
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -17,8 +14,6 @@ import matplotlib
 matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
 
-
-
 # The maximum accuracy reached was 0.17
 # With cross validation: 0.23
 
@@ -32,9 +27,9 @@ class NeuralNetwork(nn.Module):
 
         self.layer_sizes = [
             input_size,
-            int(input_size*0.35),
-            int(input_size*0.25),
-            int(input_size*0.15),
+            40,
+            35,
+            30,
             num_classes
         ]
 
@@ -117,7 +112,7 @@ def show_stats(loader, model, device='cuda', batch_size = 200):
 
 
         pred_range = (x_var.min(), x_var.max())
-        pred_mse = square_error_sum/num_samples
+        pred_mse = torch.sqrt(square_error_sum/num_samples)
         pred_acc = num_correct/num_samples
 
         print("STATS:")
@@ -150,7 +145,8 @@ def main():
     cube_data = np.loadtxt("NN_input.csv", delimiter=',')
 
     #REDUCE SIZE ONLY DEBUG
-    #cube_data = cube_data[:1000, :]
+    np.random.shuffle(cube_data)
+    #cube_data = cube_data[:2000, :]
 
     cube_data = torch.from_numpy(cube_data)
 
@@ -173,13 +169,12 @@ def main():
     targets_original = np.loadtxt("NN_target.csv", delimiter=',')
 
     #REDUCE SIZE ONLY DEBUG
-    #targets_original = targets_original[:1000]
+    np.random.shuffle(targets_original)
+    #targets_original = targets_original[:2000]
 
-    range_rep = np.transpose(np.matlib.repmat(np.arange(0,21), len(targets_original), 1))
-    targets = np.equal(np.matlib.repmat(targets_original, 21, 1), range_rep)
-    targets = np.transpose(targets)
-    targets = torch.from_numpy(targets).long()
-    targets_original = torch.from_numpy(targets_original)
+    targets_original = torch.tensor(targets_original).long()
+    targets = F.one_hot(targets_original, num_classes=21).to(device)
+
 
     ## Parameters
     input_len = inputs.shape[1]
@@ -214,7 +209,7 @@ def main():
     ## Loss and optimizer
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr=learning_rate)
-    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=100, gamma=0.2)
+    #scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=100, gamma=0.5)
 
     train_history = []
     test_history = []
@@ -286,7 +281,7 @@ def main():
                 mse_history.append(mse)
                 dynamic_display_acc(fig, ax1, ax2, test_history, val_history, mse_history)
 
-            scheduler.step()
+            #scheduler.step()
 
     except KeyboardInterrupt:
         print("\nInterrumpted training, saving model and showing statistics")
@@ -326,22 +321,26 @@ def dynamic_display_acc(fig, ax1, ax2, test_hist, val_hist, mse_hist):
     #ax1 = plt.subplot(1,2,1)
     #plt.plot(test_hist, "r")
     #plt.plot(val_hist, "g")
+    plt.subplot(1,2,1)
     ax1.lines[0].set_data(np.arange(0, len(test_hist)), test_hist)
     ax1.lines[1].set_data(np.arange(0, len(test_hist)),val_hist)
     ax1.relim()
     ax1.autoscale_view()
-    #ax1.xlabel("epoch")
-    #ax1.ylabel("accuracy")
+    plt.xlabel("epoch")
+    plt.ylabel("accuracy")
+    plt.title("Accuracy")
     ax1.legend(["test data", "all data"])
     fig.canvas.draw_idle()#plt.draw()
 
+    plt.subplot(1,2,2)
     #ax2 = plt.subplot(1,2,2)
     #plt.plot(mse_hist, "b")
     ax2.lines[0].set_data(np.arange(0, len(test_hist)),mse_hist)
     ax2.relim()
     ax2.autoscale_view()
-    #ax2.xlabel("epoch")
-    #ax2.ylabel("MSE")
+    plt.xlabel("epoch")
+    plt.ylabel("sqrt(MSE)")
+    plt.title("Square root of Mean Squared Error")
     fig.canvas.draw_idle()#plt.draw()
     fig.canvas.flush_events()
 

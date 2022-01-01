@@ -1,8 +1,8 @@
-import matrixMethods as mM
 import rubikNotation as rN
 import numpy as np
 import random
 import copy
+from Cube3d import Cube3d
 
 class Cube:
     """
@@ -15,6 +15,13 @@ class Cube:
                5  5  5
                5  5  5
                5  5  5
+    The numbers can mean any combination of 6 colors, one possibility is the following:
+    0: white
+    1: red
+    2: blue
+    3: orange
+    4: green
+    5: yellow
     """
     def __init__(self, size, faces = None):
         """
@@ -43,6 +50,40 @@ class Cube:
         #return lin_face
         return self.faces.flatten()
 
+    def face_to_front(self, face):
+        """
+        We assume our cube is normalized
+
+        We fix the front facing face, or the blue face in the normalized cube
+        """
+        color = int(face[1,1])
+
+        aux_cube = Cube(self.size, self.faces)
+        transf = []
+
+        # Put our face in position
+        orientation_rot = {0:"x'", 1:"y'", 2:"", 3:"y", 4:"y2", 5:"x"}
+        transf.append(orientation_rot[color])
+        aux_cube = aux_cube.turn(orientation_rot[color])
+
+        transf.append("")
+
+        orientation_found = False
+        counter = 0
+        rots = {0:"",1:"z",2:"z2",3:"z'"}
+
+        print(self.faces[color,:,:])
+        print(face)
+        # Orientate the face, check which orientation
+        for i in range(4):
+            if (self.faces[color,:,:] == np.rot90(face, i)).all():
+                transf[1] = rots[i]
+                counter += 1
+
+        transf = list(filter(lambda x: x != "", transf))
+
+        return transf, counter
+
     def normalize_swap_colors(self):
         """
         Only for 3x3 cubes, resets the color of the cube to the original order
@@ -66,7 +107,11 @@ class Cube:
         """
         We lock in 2 faces that will lock the final rotation of the cube
         The list passed as the argument will be modified to return the transofrmation
-        performed to reach the cube
+        performed to reach the cube.
+
+        We fix the white and red faces to their original positions.
+
+        It works only for the 3x3 cube.
         """
         transformation.clear()
         result = Cube(self.size, self.faces)
@@ -86,6 +131,46 @@ class Cube:
         if red_pos != 1:
             transformation.append(red_rots[red_pos])
             result = result.turn(red_rots[red_pos])
+
+        return result
+
+    def normalize_corners(self, transformation = []):
+        """
+        We lock in 2 faces that will lock the final rotation of the cube
+        The list passed as the argument will be modified to return the transofrmation
+        performed to reach the cube
+
+        We fix the white, red and blue corner to its original positions.
+
+        It works only for the 3x3 cube.
+        """
+
+        transformation.clear()
+        result = Cube(self.size, self.faces)
+        cube3d = Cube3d(self.faces)
+        result_pos, orig_colors = cube3d.find_piece_pos([0,1,2])
+
+        pos_layer = result_pos[1:]
+        if pos_layer == [0,0]:
+            transformation.append("y'")
+        elif pos_layer == [0,2]:
+            transformation.append("y2")
+        elif pos_layer == [2,2]:
+            transformation.append("y")
+
+        if result_pos[0] == 2:
+            transformation.append("z")
+
+        result = result.doAlgorithm(transformation)
+
+        if result.faces[0,2,0] == 2:
+            transformation.append("y'")
+            transformation.append("z'")
+            result = result.doAlgorithm(["y'", "z'"])
+        elif result.faces[0,2,0] == 1:
+            transformation.append("z")
+            transformation.append("y")
+            result = result.doAlgorithm(["z", "y"])
 
         return result
 
@@ -112,7 +197,7 @@ class Cube:
         new_faces = self.faces.copy()
 
         if times != 0:
-            new_faces[0] = mM.turnM(self.faces[0],-times)
+            new_faces[0] = np.rot90(self.faces[0],(-times)%4)
 
             # top row of face 1 mapped to 2
             # top row of face 2 mapped to 3
@@ -138,16 +223,16 @@ class Cube:
             # 3 times, rotate: {0,4} + {2,0} + {2,5} = {5,4}
             # 4 times, rotate: {0,4} + {2,0} + {2,5} + {5,4} = {}
 
-            new_faces[3] = mM.turnM(self.faces[3],-times)
-            new_faces[1] = mM.turnM(self.faces[1],times)
+            new_faces[3] = np.rot90(self.faces[3],(-times)%4)
+            new_faces[1] = np.rot90(self.faces[1],(times)%4)
 
             idx_changed = [0,2,5,4]
             for j in range(len(idx_changed)):
                 new_faces[idx_changed[j]] = self.faces[idx_changed[(j+times)%4]]
             #new_faces[idx_changed, 0] = self.faces[np.roll(idx_changed, (j+times%4)), 0]
 
-            new_faces[4] = mM.turnM(new_faces[4],2)
-            new_faces[idx_changed[(-times-1)%4]] = mM.turnM(new_faces[idx_changed[(-times-1)%4]],2)
+            new_faces[4] = np.rot90(new_faces[4],2)
+            new_faces[idx_changed[(-times-1)%4]] = np.rot90(new_faces[idx_changed[(-times-1)%4]],2)
 
         return Cube(self.size, new_faces)
 
@@ -159,8 +244,8 @@ class Cube:
         times = times%4
         new_faces = self.faces.copy()
         if times != 0:
-            new_faces[0] = mM.turnM(self.faces[0],-times)
-            new_faces[5] = mM.turnM(self.faces[5],times)
+            new_faces[0] = np.rot90(self.faces[0],(-times)%4)
+            new_faces[5] = np.rot90(self.faces[5],(times)%4)
 
             idx_changed = [4,1,2,3]
             for j in range(len(idx_changed)):
@@ -177,18 +262,18 @@ class Cube:
         times = times%4
         new_faces = self.faces.copy()
         if times != 0:
-            new_faces[4] = mM.turnM(self.faces[4],times)
-            new_faces[2] = mM.turnM(self.faces[2],-times)
+            new_faces[4] = np.rot90(self.faces[4],(times)%4)
+            new_faces[2] = np.rot90(self.faces[2],(-times)%4)
 
             idx_changed = [0,3,5,1]
             for j in range(len(idx_changed)):
                 new_faces[idx_changed[j]] = self.faces[idx_changed[(j-times)%4]]
             #new_faces[idx_changed, 0] = self.faces[np.roll(idx_changed, (j+times%4)), 0]
 
-            new_faces[0] = mM.turnM(new_faces[0],-times)
-            new_faces[1] = mM.turnM(new_faces[1],-times)
-            new_faces[3] = mM.turnM(new_faces[3],-times)
-            new_faces[5] = mM.turnM(new_faces[5],-times)
+            new_faces[0] = np.rot90(new_faces[0],(-times))
+            new_faces[1] = np.rot90(new_faces[1],(-times))
+            new_faces[3] = np.rot90(new_faces[3],(-times))
+            new_faces[5] = np.rot90(new_faces[5],(-times))
         return Cube(self.size, new_faces)
 
     def turn(self, type):
@@ -241,12 +326,33 @@ class Cube:
             result = result.turn(i)
         return result
 
-    def scramble(self, times=5):
+    def scramble(self, times=20):
+        result = []
         moves = ['U', 'D', 'L', 'R', 'F', 'B']
         moves = [i+modif for i in moves for modif in ('', '\'', '2')]
+        last_moves = ['--', '--']
+        opposite = {'R':'L', 'L':'R', 'U':'D', 'D':'U', 'F':'B', 'B':'F', '-':'|'}
         cube = self
+
         for i in range(times):
-            cube = cube.turn(random.choice(moves))
+            moves_cleaned = []
+            for i in moves:
+                aux_move = last_moves[1][0]
+                prev_move = last_moves[0][0]
+                if i[0] != aux_move:
+                    if aux_move == opposite[prev_move]:
+                        if i not in (aux_move, opposite[aux_move]):
+                            moves_cleaned.append(i)
+                    else:
+                        moves_cleaned.append(i)
+
+            move = random.choice(moves_cleaned)
+            cube = cube.turn(move)
+
+            result.append(move)
+            last_moves.pop(0) # dequeue second to last move
+            last_moves.append(move) # enqueue last move
+
         return cube
 
 
