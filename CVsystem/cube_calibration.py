@@ -146,9 +146,7 @@ class Cube_calibrator:
                 ## Description
                 face, face_positions = get_ordered_colors(frame_hsv, contours, debug = False)
 
-                self.calibrated = True
                 ## User interaction
-
                 # Initialize indicator data
                 indic_size = 40
                 indicator_x = []
@@ -224,8 +222,8 @@ class Cube_calibrator:
                     if self.solver is None:
                         # Launch the solver thread
                         #self.cube = Cube(3).doAlgorithm(['U2', 'B2', 'R', 'L'])
-                        self.cube = Cube(3).doAlgorithm(['U\'', 'F\''])
-                        #self.cube = self.arrange_cube(faces, colors_checked)
+                        #self.cube = Cube(3).doAlgorithm(['U\'', 'F\''])
+                        self.cube = self.arrange_cube(faces, colors_checked)
                         self.solver = Cube_solver_thread(self.cube, self.solver_type)
                         self.solver.setDaemon(True)
                         self.solver.start()
@@ -249,6 +247,9 @@ class Cube_calibrator:
                         indicator_color = "white"
                 elif solution[0] != 'Incorrect cube solver' and solution[0] != '--':
                     ## Phase 3: Show solution steps
+
+                    print(self.cube.toStringColor())
+                    print(self.cube_next.toStringColor())
 
                     plt.title("Showing solution")
 
@@ -293,7 +294,6 @@ class Cube_calibrator:
                             indic_size = 80
                             if relative_move[-1] == "'":
                                 rot = 180
-
 
 
                             # We have to show the user the correct turn to make
@@ -366,7 +366,7 @@ class Cube_calibrator:
         faces[0] = np.rot90(faces[0],3)
         faces[5] = np.rot90(faces[5],2)
 
-        return Cube(3, faces)
+        return Cube(3, faces).normalize()
 
 
 
