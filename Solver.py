@@ -77,4 +77,4 @@ def test_solver_time(moves, implementation):
 if __name__ == '__main__':
     #test_solver(10)
     test_solver_time(3, 'IDA*-NN')
-    # time spent 6681.240522623062 = 1 hour 51 minutes 21 seconds
+    # time spent for 8 moves: 6681.240522623062 = 1 hour 51 minutes 21 seconds

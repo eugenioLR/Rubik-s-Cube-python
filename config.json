@@ -1,8 +1,9 @@
 {
     "fps": 30,
-    "solver": "IDA_neural_solver"
+    "solver": "IDA*-NN",
+    "segm_method": "binarize",
     "face_confirmation_time": 2.5,
-    "tick_showing_time": 0.5
-    "on_phone": true
-    "debug": true
+    "tick_showing_time": 0.5,
+    "on_phone": true,
+    "debug": false
 }

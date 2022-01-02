@@ -84,12 +84,9 @@ def main():
             frame_masked = cv2.cvtColor(frame_masked_hsv, cv2.COLOR_HSV2RGB)
 
             # USING CANNY BORDERS
-            frame_border = borders(frame_hsv)
-            frame_border_fill = imfill(frame_border)
-            kernel1 = cv2.getStructuringElement(cv2.MORPH_RECT, [4, 4])
-            frame_border_fill = cv2.morphologyEx(frame_border_fill, cv2.MORPH_CLOSE, kernel1)
+            frame_border = filled_borders(frame_hsv)
 
-            contours_b, __ = find_contours(frame_border_fill, debug=True)
+            contours_b, __ = find_contours(frame_border, debug=True)
 
             get_ordered_colors(frame_hsv, contours, debug=False)
             frame_masked_hsv_b = isolate_stickers(frame_hsv, "border")
@@ -108,7 +105,7 @@ def main():
             plt.title("masked with binarize")
 
             plt.subplot(2,3,5)
-            im5.set_data(frame_border_fill)
+            im5.set_data(frame_border)
             plt.title("borders filled")
 
             plt.subplot(2,3,6)

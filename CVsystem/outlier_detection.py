@@ -1,6 +1,8 @@
 import numpy as np
 from scipy.spatial import distance
 
+# Some outlier detection methods that could be useful
+
 def box_and_whisker(data, outlier_factor=1.25):
     """
     1 variable method

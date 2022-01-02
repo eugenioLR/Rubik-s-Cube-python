@@ -142,7 +142,7 @@ def main():
 
     ## Load training data
     # Inputs
-    cube_data = np.loadtxt("NN_input.csv", delimiter=',')
+    cube_data = np.loadtxt("NN_input_full.csv", delimiter=',')
 
     #REDUCE SIZE ONLY DEBUG
     np.random.shuffle(cube_data)
@@ -166,7 +166,7 @@ def main():
     #inputs = colors_in_face.float()
 
     # Targets
-    targets_original = np.loadtxt("NN_target.csv", delimiter=',')
+    targets_original = np.loadtxt("NN_target_full.csv", delimiter=',')
 
     #REDUCE SIZE ONLY DEBUG
     np.random.shuffle(targets_original)
