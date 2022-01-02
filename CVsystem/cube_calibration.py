@@ -49,7 +49,7 @@ class Cube_calibrator:
         With the 6 faces of the cube and knowing that they are arranged in a certain order
         we put them in the correct position and orientation.
 
-        We return a normalized cube (that has the top face as white, left face as red and front face as blue) 
+        We return a normalized cube (that has the top face as white, left face as red and front face as blue)
         """
 
         opposites = {0:5,1:3,2:4,3:1,5:0}
@@ -203,7 +203,7 @@ class Cube_calibrator:
                         warned = True
 
                 # Find the features to analyze
-                contours, positions = find_contours(frame_bw, debug = False)
+                contours, positions = find_contours(frame_bw, debug = self.debug)
 
 
                 ## Description
@@ -336,7 +336,7 @@ class Cube_calibrator:
                     has_bad_colors = False
                     if face.ndim == 2:
                         has_bad_colors = (face < 0).any()
-                        if has_bad_colors:
+                        if has_bad_colors and self.debug:
                             print("Bad colors found")
 
                     if face.ndim == 2 and not has_bad_colors:
@@ -412,7 +412,8 @@ class Cube_calibrator:
                                 # We cannot work with B or F moves, performing them doesn't change the face making it
                                 # imposible to guide the user towards the solution
                                 ax.annotate("Change face please", face_positions[:,4], color='white', size=10, ha='center')
-
+                        else:
+                            ax.annotate("Your last move was wrong, try again", face_pos_aux[[1,0],1], color='white', size=10, ha='center')
 
                     else:
                         # Reset confirmation timer

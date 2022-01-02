@@ -71,9 +71,7 @@ class Cube:
         orientation_found = False
         counter = 0
         rots = {0:"",1:"z",2:"z2",3:"z'"}
-
-        print(self.faces[color,:,:])
-        print(face)
+        
         # Orientate the face, check which orientation
         for i in range(4):
             if (self.faces[color,:,:] == np.rot90(face, i)).all():

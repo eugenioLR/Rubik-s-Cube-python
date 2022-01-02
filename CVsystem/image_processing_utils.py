@@ -234,10 +234,10 @@ def get_color_name(hsv_color):
     elif  sat < 50 and val < 50:
         # Gray (not used)
         result = -2
-    elif hue <= 16 or hue >= 351:
+    elif hue <= 10 or hue >= 351:
         # Red
         result = 1
-    elif hue > 16 and hue <= 40:
+    elif hue > 10 and hue <= 40:
         # Orange
         result = 3
     elif hue > 40 and hue <= 85:
