@@ -1,11 +1,10 @@
-from .Rubik_heuristic_NN import NeuralNetwork
 from Cube3d import Cube3d
 from Cube import Cube
 from rubikNotation import *
 import time
 import random
 from pathlib import Path
-import torch
+import joblib
 
 
 class Cube_node:
@@ -17,12 +16,10 @@ class Cube_node:
         self.cube = cube
         self.alg = alg
 
-class IDA_NNSolver:
+class IDA_SVMSolver:
     def __init__(self):
         path = str(Path(__file__).resolve().parent) + "/"
-        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-        self.model = torch.load(path + '3x3HeuristicModel_config1.pt').to(self.device)
-        self.model.eval()
+        self.model = joblib.load(path + "3x3HeuristicModel.svm")
         self.min = 100
         self.nodes_generated = 0
 
@@ -101,28 +98,21 @@ class IDA_NNSolver:
         return found
 
     def __heuristic(self, cube):
-        perc = [0.9, 0.1]
-        neural_heuristic = self.__nn_heuristic(cube)
+        perc = [0.85, 0.15]
+        neural_heuristic = self.__svm_heuristic(cube)
         piece_distance_heuristic = self.__manhattan_dist(cube)
         return int(perc[0]*neural_heuristic + perc[1]*piece_distance_heuristic)
         #return mi(neural_heuristic, piece_distance_heuristic)
 
-    def __nn_heuristic(self, cube):
+    def __svm_heuristic(self, cube):
         cube_data = np.array(cube.normalize().get_lin_face_data())
-        colors_in_face = np.array([len(np.unique(i)) for i in np.resize(cube_data, [6, 9])])
-        # Uncomment if the net accepts 60 inputs
-        inputs = np.concatenate([cube_data, colors_in_face])
-        inputs = torch.tensor([inputs]).float().to(self.device)
 
-        #inputs = torch.tensor(cube_data).float().to(self.device)
-        result = self.model(inputs)
+        # Predict
+        result = np.round(self.model.predict([cube_data])*3)
+        result = max(0, result)
+        result = min(20, result)
 
-        # USED FOR 'ONE HOT' ENCODING
-        #result = result.softmax(dim=1).argmax().to('cpu')
-        result = result.argmax().to('cpu')
-
-
-        return int(result)
+        return result
 
     def __manhattan_dist(self, cube):
         c3d = Cube3d(cube.faces)

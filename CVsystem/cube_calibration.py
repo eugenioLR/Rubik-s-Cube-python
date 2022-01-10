@@ -138,8 +138,10 @@ class Cube_calibrator:
             ax = plt.subplot()
 
             # Initialize the subplot by drawing a picture and a line
-            path = str(Path(__file__).resolve().parent) + "/"
-            I_rgb = cv2.imread(path+"rubiks_cube_photo.png")
+            I_rgb = self.cam.read()
+            if self.on_phone:
+                I_rgb = cv2.rotate(I_rgb, cv2.ROTATE_90_CLOCKWISE)
+            
             im = ax.imshow(np.zeros(I_rgb.shape))
             indic, = ax.plot([0,0],[0,0], linewidth=10)
             plt.show()
@@ -183,10 +185,7 @@ class Cube_calibrator:
 
 
                 ## Pre-processing
-                frame_hsv = cv2.cvtColor(frame_original, cv2.COLOR_RGB2HSV)
-
-
-                frame_hsv = cv2.medianBlur(frame_hsv, 9)
+                frame_hsv, frame_original = preprocess_image(frame_original)
 
 
                 ## Extraction of characteristics
@@ -278,7 +277,8 @@ class Cube_calibrator:
                             text_size = max(text_size, 6)
 
                             # Show the name of the color of each sticker
-                            ax.annotate(color_names[face_list[i]], face_positions[:,i], color='white', size=text_size, ha='center')
+                            ax.annotate(color_names[face_list[i]], face_positions[:,i], color='#F0F0F0', size=text_size, ha='center', fontweight="heavy")
+
 
 
 
@@ -405,7 +405,7 @@ class Cube_calibrator:
                             indicator_color = "#66ccff"
 
                             if relative_move[-1] == "2":
-                                ax.annotate("x2", (arrow_pos[1], arrow_pos[0]), color='white', size=10, ha='center')
+                                ax.annotate("x2", (arrow_pos[1], arrow_pos[0]), color='white', size=20, ha='center', fontweight="heavy")
 
 
                             if relative_move[0] in ['B', 'F']:
@@ -413,6 +413,7 @@ class Cube_calibrator:
                                 # imposible to guide the user towards the solution
                                 ax.annotate("Change face please", face_positions[:,4], color='white', size=10, ha='center')
                         else:
+                            face_pos_aux = face_positions[[1,0],:]
                             ax.annotate("Your last move was wrong, try again", face_pos_aux[[1,0],1], color='white', size=10, ha='center')
 
                     else:

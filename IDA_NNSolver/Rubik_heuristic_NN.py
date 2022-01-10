@@ -14,6 +14,8 @@ import matplotlib
 matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
 
+from pathlib import Path
+
 # The maximum accuracy reached was 0.17
 # With cross validation: 0.23
 
@@ -22,7 +24,7 @@ class NeuralNetwork(nn.Module):
     Neural network with 3 hidden layers of the following sizes:
     54 -> 40 -> 35 -> 30 -> 20
     """
-    def __init__(self, input_size, num_classes = 21):
+    def __init__(self, input_size, num_classes = 20):
         super(NeuralNetwork, self).__init__()
 
         self.layer_sizes = [
@@ -57,23 +59,30 @@ class NeuralNetwork(nn.Module):
         x = self.fc4(x)
         return x
 
-def check_accuracy(loader, model, device='cuda'):
+def check_accuracy(loader, model, device='cuda', batch_size = 200):
     num_correct = 0
     num_samples = 0
 
     model.eval()
     with torch.no_grad():
         num_samples = len(loader.dataset)
-        for x, y in loader:
+        x_var = np.zeros(num_samples)
+        y_var = np.zeros(num_samples)
+        for batch_id, (x, y) in enumerate(loader):
             x = x.to(device=device)
             y = y.to(device=device)
             x = x.reshape(x.shape[0], -1)
             y = y.reshape(y.shape[0], -1)
 
             scores = model(x)
-            predictions = scores.softmax(dim=1).argmax(1)
+            predictions = scores.argmax(1)
             real = y.argmax(1)
-            num_correct += (predictions == real).int().sum()
+
+            indices = np.arange(batch_id*batch_size, batch_id*batch_size + x.shape[0])
+            x_var[indices] = predictions.int().cpu()
+            y_var[indices] = real.int().cpu()
+
+            num_correct += float((predictions == real).int().sum())
 
         acc = float(num_correct)/float(num_samples)
 
@@ -102,7 +111,7 @@ def show_stats(loader, model, device='cuda', batch_size = 200):
             predictions = scores.argmax(1)
             real = y.argmax(1)
 
-            indices = np.arange(batch_id*batch_size,batch_id*batch_size + x.shape[0])
+            indices = np.arange(batch_id*batch_size, batch_id*batch_size + x.shape[0])
             x_var[indices] = predictions.int().cpu()
             y_var[indices] = real.int().cpu()
 
@@ -134,6 +143,8 @@ def setup_dataflow(dataset, train_idx, val_idx, batch=200):
     return train_loader, val_loader
 
 def main():
+    path = str(Path(__file__).resolve().parent) + "/"
+
     ## Plot config
     plt.style.use('seaborn')
 
@@ -142,45 +153,37 @@ def main():
 
     ## Load training data
     # Inputs
-    cube_data = np.loadtxt("NN_input_full.csv", delimiter=',')
+    cube_data = np.loadtxt(path + "../training_data/NN_input_nn.csv", delimiter=',')
 
     #REDUCE SIZE ONLY DEBUG
-    np.random.shuffle(cube_data)
+    #np.random.shuffle(cube_data)
     #cube_data = cube_data[:2000, :]
-
-    cube_data = torch.from_numpy(cube_data)
 
     # Amount of colors in each face
     colors_in_face = []
     for i in range(len(cube_data)):
-        colors_in_face.append(torch.tensor([len(torch.unique(i)) for i in torch.reshape(cube_data[i], [6, 9])]))
-    colors_in_face = torch.stack(colors_in_face)
+        colors_in_face.append(np.array([len(np.unique(face)) for face in np.reshape(cube_data[i], [6, 9])]))
+    colors_in_face = np.stack(colors_in_face)
 
-    # Corners
-    #indices = torch.tensor([0,2,6,8])
-    #indices = torch.cat([indices+(9*i) for i in range(6)])
-    #corners = cube_data[:,indices]
-
-    inputs = torch.cat([cube_data, colors_in_face], dim=1).float()
-    #inputs = torch.cat([corners, colors_in_face], dim=1).float()
-    #inputs = colors_in_face.float()
+    inputs = np.hstack([cube_data, colors_in_face])
+    inputs = torch.tensor(inputs).float().to(device)
 
     # Targets
-    targets_original = np.loadtxt("NN_target_full.csv", delimiter=',')
+    targets_original = np.loadtxt(path + "../training_data/NN_target_nn.csv", delimiter=',')
 
     #REDUCE SIZE ONLY DEBUG
-    np.random.shuffle(targets_original)
+    #np.random.shuffle(targets_original)
     #targets_original = targets_original[:2000]
 
     targets_original = torch.tensor(targets_original).long()
-    targets = F.one_hot(targets_original, num_classes=21).to(device)
+    targets = F.one_hot(targets_original).to(device)
 
 
     ## Parameters
     input_len = inputs.shape[1]
     target_len = targets.shape[1]
     learning_rate = 0.001
-    batch_size = 200
+    batch_size = 1024
     num_epochs = 1000
 
     # Data loader
@@ -188,7 +191,7 @@ def main():
     print(f"Target tensor size: {targets.shape}")
     dataset = TensorDataset(inputs, targets)
 
-    num_splits = 7
+    num_splits = 10
     splits = KFold(n_splits=num_splits, shuffle=True)
 
     split_amount = [int(len(dataset)*0.7), int(len(dataset)*0.15), int(len(dataset)*0.15)]
@@ -199,17 +202,26 @@ def main():
     #train_loader = DataLoader(train_data, batch_size=batch_size, shuffle=True)
     test_loader = DataLoader(test_data, batch_size=batch_size, shuffle=True)
     val_loader = DataLoader(val_data, batch_size=batch_size, shuffle=True)
-
     dataset_loader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
 
     ## Initialize network
-    model = NeuralNetwork(input_len, target_len).to(device=device)
+    model = NeuralNetwork(input_len, target_len).to(device)
     print(f"NN architecture: {model.layer_sizes}")
 
     ## Loss and optimizer
-    criterion = nn.CrossEntropyLoss()
+    # weights
+    values, counts = np.unique(targets_original, return_counts=True)
+    weights = targets_original.shape[0]/(len(values) * counts)
+    weights = torch.tensor(weights).float().to(device)
+
+    # Loss function
+    criterion = nn.CrossEntropyLoss(weight=weights)
+
+    # optimizer
     optimizer = optim.Adam(model.parameters(), lr=learning_rate)
-    #scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=100, gamma=0.5)
+
+    # Scheduler, for decreasing the learning rate
+    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=100, gamma=0.1)
 
     train_history = []
     test_history = []
@@ -222,7 +234,6 @@ def main():
     counter = 0
     max_count = 25
     stall_tol = 0.0001
-    best_corr = -100
 
     if info_flag:
         fig, ax1, ax2 = setup_dynamic_plot()
@@ -245,7 +256,7 @@ def main():
             # With cross validation
             for split_idx, (train_idx, test_idx) in enumerate(splits.split(np.arange(len(dataset)))):
 
-                train_loader_split, test_loader_split = setup_dataflow(dataset, train_idx, test_idx)
+                train_loader_split, test_loader_split = setup_dataflow(dataset, train_idx, test_idx, batch_size)
 
                 # Train with each permutation of the slipt
                 for batch_id, (dat, tar) in enumerate(train_loader_split):
@@ -276,12 +287,12 @@ def main():
             print()
             print(f"Epoch: {i}, stall: {counter}")
             if info_flag:
-                pred_range, mse, acc = show_stats(test_loader, model, device)
+                pred_range, mse, acc = show_stats(test_loader, model, device, batch_size)
                 val_history.append(acc)
                 mse_history.append(mse)
                 dynamic_display_acc(fig, ax1, ax2, test_history, val_history, mse_history)
 
-            #scheduler.step()
+            scheduler.step()
 
     except KeyboardInterrupt:
         print("\nInterrumpted training, saving model and showing statistics")
@@ -294,7 +305,7 @@ def main():
     show_stats(dataset_loader, model, device)
 
     if input("save model?(Y/N): ").upper() == 'Y':
-        torch.save(model, '3x3HeuristicModel.pt')
+        torch.save(model, path + '3x3HeuristicModel.pt')
         print("Model saved")
 
 def setup_dynamic_plot():

@@ -43,11 +43,6 @@ class Cube:
         linearize the data of the cube, transform a set of 6
         3x3 matrixes to a list with 6*3*3=54 elements
         """
-        #lin_face = []
-        #for i in range(6):
-        #    for j in range(self.size):
-        #        lin_face += self.faces[i][j]
-        #return lin_face
         return self.faces.flatten()
 
     def face_to_front(self, face):
@@ -71,7 +66,7 @@ class Cube:
         orientation_found = False
         counter = 0
         rots = {0:"",1:"z",2:"z2",3:"z'"}
-        
+
         # Orientate the face, check which orientation
         for i in range(4):
             if (self.faces[color,:,:] == np.rot90(face, i)).all():

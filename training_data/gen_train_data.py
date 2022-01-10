@@ -179,12 +179,12 @@ def gen_data(max_depth=20, max_states=1000, debug=True):
     targets = data.get_net_targets()
 
     path = str(Path(__file__).resolve().parent) + "/"
-    with open(path + "NN_input_full.csv.trash", "w") as file_in:
+    with open(path + "NN_input_full.csv", "w") as file_in:
         for i in inputs:
             file_in.write(",".join([str(j) for j in i]))
             file_in.write("\n")
 
-    with open(path + "NN_target_full.csv.trash", "w") as file_targ:
+    with open(path + "NN_target_full.csv", "w") as file_targ:
         file_targ.write(str(targets[0]))
         for i in targets[1:]:
             file_targ.write(",")

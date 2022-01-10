@@ -5,7 +5,9 @@ import time
 from pathlib import Path
 import threading
 
-from IDA_NNSolver.Rubik_heuristic_NN import *
+from IDA_SVMSolver.IDA_SVMSolver import *
+
+from IDA_NNSolver.Rubik_heuristic_NN import NeuralNetwork
 from IDA_NNSolver.IDA_NNSolver import *
 
 from IDA_Solver.IDA_Solver import *
@@ -13,7 +15,7 @@ from IDA_Solver.IDA_Solver import *
 from Korf_Solver.Korf_Solver import *
 
 class Cube_solver_thread(threading.Thread):
-    def __init__(self, cube, implementation="IDA_neural"):
+    def __init__(self, cube, implementation="IDA*"):
         threading.Thread.__init__(self)
         self.cube = cube
         self.solution_found = False
@@ -24,9 +26,12 @@ class Cube_solver_thread(threading.Thread):
     def run(self):
         # Set implementation
         if self.implementation == 'Korf':
-            solver = Korf_Solver()
+            print("Not implemented yet")
+            solver = None
         elif self.implementation == 'IDA*-NN':
             solver = IDA_NNSolver()
+        elif self.implementation == 'IDA*-SVM':
+            solver = IDA_SVMSolver()
         elif self.implementation == 'IDA*':
             solver = IDA_Solver()
         elif self.implementation == 'RNN':
@@ -48,7 +53,10 @@ class Cube_solver_thread(threading.Thread):
 
 
 def test_solver(moves, implementation, alg = None):
-    c = Cube(3).scramble(moves)
+    if alg is None:
+        c = Cube(3).scramble(moves)
+    else:
+        c = Cube(3).doAlgorithm(alg)
     solver = Cube_solver_thread(c, implementation)
 
     start = time.time()
@@ -75,6 +83,6 @@ def test_solver_time(moves, implementation):
 
 
 if __name__ == '__main__':
-    #test_solver(10)
-    test_solver_time(3, 'IDA*-NN')
+    #test_solver(10, 'IDA*-NN', ["B2", "U'", "D2", "B", "F", "R'", "F'"])
+    test_solver_time(5, 'IDA*')
     # time spent for 8 moves: 6681.240522623062 = 1 hour 51 minutes 21 seconds

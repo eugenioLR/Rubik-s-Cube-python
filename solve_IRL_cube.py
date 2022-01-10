@@ -4,6 +4,7 @@ from IDA_NNSolver.Rubik_heuristic_NN import *
 import json
 
 if __name__ == '__main__':
+    # Reading the config file
     json_config = open("config.json")
     config = json.loads(json_config.read())
     json_config.close()

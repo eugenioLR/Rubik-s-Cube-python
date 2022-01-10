@@ -12,3 +12,9 @@ Online solver and explanation:
 
 Combining genetic algorithms and SVMs
 -http://www.sven-crone.com/papers/Lessmann,%20Stahlbock,%20Crone%20(2006)%20Genetic%20Algorithms%20for%20Support%20Vector%20Machine%20Model%20Selection%20-%20WCCI06%2001716515.pdf
+
+Documentation for some of the libraries used
+-https://pytorch.org/docs/stable/index.html
+-https://docs.opencv.org/4.x/d9/df8/tutorial_root.html
+-https://scikit-learn.org/stable/user_guide.html
+-https://matplotlib.org/stable/index.html

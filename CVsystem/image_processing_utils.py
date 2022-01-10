@@ -10,6 +10,23 @@ import random
 
 sticker_size = 1.5
 
+def preprocess_image(I_rgb, contrast = 1.4):
+    ## Pre-processing
+    I_yuv  = cv2.cvtColor(I_rgb, cv2.COLOR_RGB2YUV)
+
+    # Add image to itself with a weight to increase contrast
+    brightness = int(round(255*(1-contrast)/2))
+    I_yuv[:,:,0] = cv2.addWeighted(I_yuv[:,:,0], 0, I_yuv[:,:,0], contrast, brightness)
+
+    I_rgb2 = cv2.cvtColor(I_yuv, cv2.COLOR_YUV2RGB)
+
+    I_hsv = cv2.cvtColor(I_rgb2, cv2.COLOR_RGB2HSV)
+
+    I_hsv = cv2.medianBlur(I_hsv, 9)
+
+    return I_hsv, I_rgb2
+
+
 def imfill(I):
     """
     Replica of the imfill function in matlab

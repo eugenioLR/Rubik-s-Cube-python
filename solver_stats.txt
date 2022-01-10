@@ -4,7 +4,7 @@ We stop the algorithm if it takes more than 2 minutes.
 
 
 IDA*-NN:
-    [With '3x3HeuristicModel_best2.pt']
+    [With '3x3HeuristicModel_config1.pt']
     8 moves: 76.18138150930405
     7 moves: 11.261282019615173
     6 moves: 3.444949471950531
@@ -13,7 +13,16 @@ IDA*-NN:
     3 moves: 0.21874078512191772
     2 moves: 0.17837646961212159
 
-    []
+    [With 3x3HeuristicModel_config2.pt]
+    6 moves: 4.568710904121399
+
+IDA*-SVM:
+    [With '3x3HeuristicModel.svm']
+    5 moves: 6.511505854129791
+    4 moves: 0.40412661552429197
+    3 moves: 0.21874078512191772
+    2 moves: 0.17837646961212159
+
 
 IDA*:
     6 moves: 69.78236905097961 (sometimes above 2 minutes)
