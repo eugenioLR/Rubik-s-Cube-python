@@ -1,5 +1,7 @@
 import os
+from copy import copy
 from Cube import Cube
+from rubikNotation import *
 
 class Menu:
     def __init__(self):
@@ -23,7 +25,7 @@ class Menu:
 
     def performMovements(self, scramble, cube):
         algorithm = scramble
-        while(algorithm != "EXIT"):
+        while algorithm != "EXIT":
             self.clearScreen()
             cube = cube.doAlgorithm(algorithm)
             if cube.isSolved():
@@ -37,6 +39,20 @@ class Menu:
             if algorithm == "RESET":
                 cube = Cube(cube.size)
                 algorithm = scramble
+    
+    def transformAlgorithm(self, alg):
+        algorithm_original = groupAlg(alg)
+        algorithm = copy(algorithm_original)
+        option = ""
+        while option != "EXIT":
+            self.clearScreen()
+            print("Current algorithm:", *algorithm)
+            option = input("introduce the algorithm you want to execute ('exit' to exit, 'reset' to reset):").upper()
+            if option == "INVERT":
+                algorithm = invertAlg(algorithm)
+
+
+
 
     def menu(self):
         cube = self.start()
@@ -57,7 +73,8 @@ class Menu:
                 alg = input("insert the initial scramble(leave empty to do nothing): ")
                 self.performMovements(alg, cube)
             elif option == "2":
-                pass
+                alg = input("insert the initial scramble(leave empty to do nothing): ")
+                self.transformAlgorithm(alg)
             elif option == "e":
                 running = False
 

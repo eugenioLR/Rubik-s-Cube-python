@@ -6,6 +6,8 @@ from rubikNotation import *
 import time
 from pathlib import Path
 
+from joblib import Parallel, delayed 
+
 # This will get the data to train a Neural network
 # that will get an heuristic that will be used
 # by the A* search.
@@ -44,17 +46,17 @@ class Rubik_train_data:
         last_moves = ['--', '--']
         opposite = {'R':'L', 'L':'R', 'U':'D', 'D':'U', 'F':'B', 'B':'F', '-':'|'}
 
-        for i in range(times):
+        for _ in range(times):
             moves_cleaned = []
-            for i in moves:
+            for j in moves:
                 aux_move = last_moves[1][0]
                 prev_move = last_moves[0][0]
-                if i[0] != aux_move:
+                if j[0] != aux_move:
                     if aux_move == opposite[prev_move]:
-                        if i not in (aux_move, opposite[aux_move]):
-                            moves_cleaned.append(i)
+                        if j not in (aux_move, opposite[aux_move]):
+                            moves_cleaned.append(j)
                     else:
-                        moves_cleaned.append(i)
+                        moves_cleaned.append(j)
 
             move = random.choice(moves_cleaned)
 
@@ -67,32 +69,79 @@ class Rubik_train_data:
 
         # generate a large amount of random cubes that are 'depth' moves away from being solved
         self.cubes[0] = set([self.cube])
-        total_samples = 1
-        for i in range(1, self.depth+1):
-            self.algs[i] = set()
-            self.cubes[i] = set()
+
+        def prepare_data_depth(i):
+            algs = set()
+            cubes = set()
             samples = 0
             stall_count = 0
+            
+            total_samples = 1
+
             if i > 6:
                 max_stall = self.max_stall_unknown
             else:
                 max_stall = self.max_stall
+            
             j = 0
+
             while samples < self.max_samples and stall_count < max_stall:
                 aux_alg = self.get_random_alg(i)
                 new_cube = self.cube.doAlgorithm(aux_alg)
-                if not new_cube in self.cubes[i]:
-                    self.cubes[i].add(new_cube)
+                if not new_cube in cubes:
+                    cubes.add(new_cube)
+                    algs.add("".join(aux_alg))
                     samples += 1
-                elif self.distance_pos[i] != 0 and len(self.cubes[i]) >= self.distance_pos[i]:
+                elif self.distance_pos[i] != 0 and len(cubes) >= self.distance_pos[i]:
                         stall_count += 1
                 j += 1
-                if debug and j%100000 == 0 and j != 0:
-                    print(f"DEBUG: iteration {j} with {len(self.cubes[i])} data points at depth {i}")
+                if debug and j%20000 == 0 and j != 0:
+                    print(f"DEBUG: PROGRESS, iteration {j} with {len(cubes)} data points at depth {i}")
 
-            total_samples += len(self.cubes[i])
+            total_samples += len(cubes)
             if debug:
-                print(f"DEBUG: depth {i} reached, generated {len(self.cubes[i])} datapoints")
+                print(f"DEBUG: DONE, depth {i} reached, generated {len(cubes)} datapoints")
+            
+            return (i, total_samples, cubes, algs)
+
+        res = Parallel(n_jobs=self.depth)(delayed(prepare_data_depth)(i) for i in range(1, self.depth+1))
+        
+        total_samples = 0
+        for val in res:
+            total_samples += val[1]
+            self.cubes[val[0]] = val[2]
+            self.algs[val[0]] = val[3]
+
+
+
+
+        # for i in range(1, self.depth+1):
+        #     self.algs[i] = set()
+        #     self.cubes[i] = set()
+        #     samples = 0
+        #     stall_count = 0
+        #     if i > 6:
+        #         max_stall = self.max_stall_unknown
+        #     else:
+        #         max_stall = self.max_stall
+        #     j = 0
+        #     while samples < self.max_samples and stall_count < max_stall:
+        #         aux_alg = self.get_random_alg(i)
+        #         new_cube = self.cube.doAlgorithm(aux_alg)
+        #         if not new_cube in self.cubes[i]:
+        #             self.cubes[i].add(new_cube)
+        #             samples += 1
+        #         elif self.distance_pos[i] != 0 and len(self.cubes[i]) >= self.distance_pos[i]:
+        #                 stall_count += 1
+        #         j += 1
+        #         if debug and j%20000 == 0 and j != 0:
+        #             print(f"DEBUG: iteration {j} with {len(self.cubes[i])} data points at depth {i}")
+
+        #     total_samples += len(self.cubes[i])
+        #     if debug:
+        #         print(f"DEBUG: depth {i} reached, generated {len(self.cubes[i])} datapoints")
+
+        
         return total_samples
 
 
@@ -135,26 +184,30 @@ class Rubik_train_data:
             self.data[i] = set()
             for j in self.cubes[i]:
                 self.data[i].add(tuple(j.get_lin_face_data()))
+            self.cubes[i] = None
 
     def get_net_inputs(self):
         result = []
-        if len(self.cubes) == 0:
-            print("please prepare the input data first")
-            return None
 
         for i in self.data:
             result += self.data[i]
+        
         print(len(result))
         return result
 
     def get_net_targets(self):
         result = []
-        if len(self.cubes) == 0:
-            print("please prepare the input data first")
-            return None
 
         for i in self.data:
             result += [i] * len(self.data[i])
+        print(len(result))
+        return result
+    
+    def get_moves(self):
+        result = []
+
+        for i in self.algs:
+            result += self.algs[i]
         print(len(result))
         return result
 
@@ -173,26 +226,33 @@ def gen_data(max_depth=20, max_states=1000, debug=True):
     #data_purged = data.cleanup_data()
     #print(f"Got rid of {data_purged} data points after expanding the data")
 
-    data.linearlize_data()
-
-    inputs = data.get_net_inputs()
-    targets = data.get_net_targets()
+    data.linearlize_data()    
 
     path = str(Path(__file__).resolve().parent) + "/"
+
+    inputs = data.get_net_inputs()
+    
     with open(path + "NN_input_full.csv", "w") as file_in:
         for i in inputs:
             file_in.write(",".join([str(j) for j in i]))
             file_in.write("\n")
-
+    
+    targets = data.get_net_targets()
     with open(path + "NN_target_full.csv", "w") as file_targ:
         file_targ.write(str(targets[0]))
         for i in targets[1:]:
             file_targ.write(",")
             file_targ.write(str(i))
+    
+    moves = data.get_moves()
+    with open(path + "NN_moves_full.csv", "w") as file_targ:
+        for i in moves:
+            file_targ.write(i)
+            file_targ.write("\n")
 
 if __name__ == '__main__':
     # Go crazy with the amount of data, you can take a subset of the total data after that
     start = time.time()
-    gen_data(20, 400000)
+    gen_data(20, 500000)
     end = time.time()
     print(f"Time spent: {end-start}")

@@ -156,8 +156,8 @@ def main():
     cube_data = np.loadtxt(path + "../training_data/NN_input_nn.csv", delimiter=',')
 
     #REDUCE SIZE ONLY DEBUG
-    #np.random.shuffle(cube_data)
-    #cube_data = cube_data[:2000, :]
+    np.random.shuffle(cube_data)
+    cube_data = cube_data[:20000, :]
 
     # Amount of colors in each face
     colors_in_face = []
@@ -172,8 +172,8 @@ def main():
     targets_original = np.loadtxt(path + "../training_data/NN_target_nn.csv", delimiter=',')
 
     #REDUCE SIZE ONLY DEBUG
-    #np.random.shuffle(targets_original)
-    #targets_original = targets_original[:2000]
+    np.random.shuffle(targets_original)
+    targets_original = targets_original[:20000]
 
     targets_original = torch.tensor(targets_original).long()
     targets = F.one_hot(targets_original).to(device)
