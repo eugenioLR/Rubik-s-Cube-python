@@ -1,7 +1,13 @@
+import time
 import traceback
 from .video_input import WebcamVideoStream
 from .image_processing_utils import *
-from . import *
+from ..Cube import Cube
+from ..rubikNotation import * 
+from ..solvers import Cube_solver_thread
+import matplotlib.pyplot as plt
+import cv2
+import numpy as np
 
 close_flag = False
 
@@ -32,6 +38,7 @@ class Cube_calibrator:
         self.confirm_time = config["face_confirmation_time"]
         self.tick_time = config["tick_showing_time"]
         self.on_phone = config["on_phone"]
+        self.mirror = config["mirror"]
         self.debug = config["debug"]
 
         # Internal parameters
@@ -182,6 +189,9 @@ class Cube_calibrator:
 
                 if self.on_phone:
                     frame_original = cv2.rotate(frame_original, cv2.ROTATE_90_CLOCKWISE)
+
+                if self.mirror:
+                    frame_original = cv2.flip(frame_original, 1)
 
 
                 ## Pre-processing

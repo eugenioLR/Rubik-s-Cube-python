@@ -1,11 +1,12 @@
-from .Rubik_heuristic_NN import NeuralNetwork
-from Cube3d import Cube3d
-from Cube import Cube
-from rubikNotation import *
 import time
 import random
 from pathlib import Path
 import torch
+from .Rubik_heuristic_NN import NeuralNetwork
+from ...Cube3d import Cube3d
+from ...Cube import Cube
+from ...rubikNotation import *
+from ..Solver import Solver
 
 
 class Cube_node:
@@ -17,7 +18,7 @@ class Cube_node:
         self.cube = cube
         self.alg = alg
 
-class IDA_NNSolver:
+class IDA_NNSolver(Solver):
     def __init__(self):
         path = str(Path(__file__).resolve().parent) + "/"
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')

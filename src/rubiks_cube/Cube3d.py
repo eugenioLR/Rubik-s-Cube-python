@@ -102,7 +102,7 @@ class Cube_corner(Cube_piece):
             dists.append(abs(self.pos[i] - piece_pos[i]))
         return sum(dists)
 
-class Cube3d():
+class Cube3d:
     def __init__(self, faces):
         # We don't store the centers, we assume the cube is normalized
 

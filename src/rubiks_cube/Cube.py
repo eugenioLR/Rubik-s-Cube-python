@@ -1,8 +1,8 @@
-import rubikNotation as rN
-import numpy as np
 import random
 import copy
-from Cube3d import Cube3d
+import numpy as np
+from .Cube3d import Cube3d
+from .rubikNotation import *
 
 class Cube:
     """
@@ -314,7 +314,7 @@ class Cube:
         Does a sequence of turns on a cube
         """
         result = self
-        grouped = rN.groupAlg(alg)
+        grouped = groupAlg(alg)
         for i in grouped:
             result = result.turn(i)
         return result

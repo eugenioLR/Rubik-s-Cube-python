@@ -1,11 +1,12 @@
-from Cube import Cube
-from Cube3d import Cube3d
-from rubikNotation import *
 import numpy as np
 import time
 from pathlib import Path
 import threading
 import random
+from ..Solver import Solver
+from ...rubikNotation import *
+from ...Cube import *
+from ...Cube3d import *
 
 class Cube_node:
     """
@@ -16,7 +17,7 @@ class Cube_node:
         self.cube = cube
         self.alg = alg
 
-class IDA_Solver:
+class IDA_Solver(Solver):
     # https://www.cs.princeton.edu/courses/archive/fall06/cos402/papers/korfrubik.pdf
     def __init__(self):
         self.min = 100

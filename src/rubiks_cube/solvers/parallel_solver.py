@@ -1,18 +1,15 @@
-from Cube import Cube
-from rubikNotation import *
 import numpy as np
 import time
 from pathlib import Path
 import threading
 
-from IDA_SVMSolver.IDA_SVMSolver import *
+from ..Cube import Cube
+from ..rubikNotation import *
 
-from IDA_NNSolver.Rubik_heuristic_NN import NeuralNetwork
-from IDA_NNSolver.IDA_NNSolver import *
-
-from IDA_Solver.IDA_Solver import *
-
-from Korf_Solver.Korf_Solver import *
+# from .IDA_SVMSolver import *
+from .IDA_NNSolver import *
+from .IDA_Solver import *
+# from .Korf_Solver import *
 
 class Cube_solver_thread(threading.Thread):
     def __init__(self, cube, implementation="IDA*"):

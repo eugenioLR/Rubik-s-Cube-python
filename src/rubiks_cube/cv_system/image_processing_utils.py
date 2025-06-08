@@ -1,11 +1,14 @@
 # Sticker size = 1.5 cm
-from . import outlier_detection as outlier
-from . import *
+# from . import outlier_detection as outlier
+# from . import *
+from .outlier_detection import relative_density
 from scipy.spatial import distance
 import colorsys
 import math
+import numpy as np
 from scipy import stats
 import random
+import cv2
 
 
 sticker_size = 1.5
@@ -178,7 +181,7 @@ def find_contours(I_bw, debug = False):
         prop_aux = properties[:, boundary_mask]
 
         # We obtain which contours are outliers
-        distance_filter = outlier.relative_density(prop_aux, 9, 0.75, 'euclidean')
+        distance_filter = relative_density(prop_aux, 9, 0.75, 'euclidean')
 
         if debug:
             print(f"{np.count_nonzero(distance_filter)} boundaries were outliers")
@@ -245,10 +248,10 @@ def get_color_name(hsv_color):
 
     result = -1
 
-    if sat < 50 and val > 50:
+    if sat < 30 and val > 50:
         # White
         result = 0
-    elif  sat < 50 and val < 50:
+    elif  sat < 30 and val < 50:
         # Gray (not used)
         result = -2
     elif hue <= 10 or hue >= 351:
