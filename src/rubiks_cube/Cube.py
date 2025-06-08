@@ -37,7 +37,7 @@ class Cube:
         else:
             self.faces = np.array(faces)
 
-    def get_lin_face_data(self):
+    def get_flat_face_data(self):
         """
         noInput -> tuple[int]
         linearize the data of the cube, transform a set of 6
@@ -179,7 +179,7 @@ class Cube:
         noInput -> number
         Implement hash function so this class can be used in sets/hash maps
         """
-        return hash(tuple(self.get_lin_face_data()))
+        return hash(tuple(self.get_flat_face_data()))
 
     def Uturn(self, times):
         """

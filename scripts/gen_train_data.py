@@ -1,8 +1,6 @@
-import sys
-sys.path.append('..')
-
-from Cube import *
-from rubikNotation import *
+import argparse
+from rubiks_cube.Cube import *
+from rubiks_cube.rubikNotation import *
 import time
 from pathlib import Path
 
@@ -68,11 +66,13 @@ class Rubik_train_data:
     def prepare_data(self, debug = False):
 
         # generate a large amount of random cubes that are 'depth' moves away from being solved
-        self.cubes[0] = set([self.cube])
+        self.cubes[0] = [self.cube]
+        self.algs[0] = [""]
 
         def prepare_data_depth(i):
-            algs = set()
-            cubes = set()
+            algs = list()
+            cubes = list()
+            cube_set = set()
             samples = 0
             stall_count = 0
             
@@ -88,12 +88,13 @@ class Rubik_train_data:
             while samples < self.max_samples and stall_count < max_stall:
                 aux_alg = self.get_random_alg(i)
                 new_cube = self.cube.doAlgorithm(aux_alg)
-                if not new_cube in cubes:
-                    cubes.add(new_cube)
-                    algs.add("".join(aux_alg))
+                if not new_cube in cube_set:
+                    cubes.append(new_cube)
+                    cube_set.add(new_cube)
+                    algs.append("".join(aux_alg))
                     samples += 1
                 elif self.distance_pos[i] != 0 and len(cubes) >= self.distance_pos[i]:
-                        stall_count += 1
+                    stall_count += 1
                 j += 1
                 if debug and j%20000 == 0 and j != 0:
                     print(f"DEBUG: PROGRESS, iteration {j} with {len(cubes)} data points at depth {i}")
@@ -112,36 +113,6 @@ class Rubik_train_data:
             self.cubes[val[0]] = val[2]
             self.algs[val[0]] = val[3]
 
-
-
-
-        # for i in range(1, self.depth+1):
-        #     self.algs[i] = set()
-        #     self.cubes[i] = set()
-        #     samples = 0
-        #     stall_count = 0
-        #     if i > 6:
-        #         max_stall = self.max_stall_unknown
-        #     else:
-        #         max_stall = self.max_stall
-        #     j = 0
-        #     while samples < self.max_samples and stall_count < max_stall:
-        #         aux_alg = self.get_random_alg(i)
-        #         new_cube = self.cube.doAlgorithm(aux_alg)
-        #         if not new_cube in self.cubes[i]:
-        #             self.cubes[i].add(new_cube)
-        #             samples += 1
-        #         elif self.distance_pos[i] != 0 and len(self.cubes[i]) >= self.distance_pos[i]:
-        #                 stall_count += 1
-        #         j += 1
-        #         if debug and j%20000 == 0 and j != 0:
-        #             print(f"DEBUG: iteration {j} with {len(self.cubes[i])} data points at depth {i}")
-
-        #     total_samples += len(self.cubes[i])
-        #     if debug:
-        #         print(f"DEBUG: depth {i} reached, generated {len(self.cubes[i])} datapoints")
-
-        
         return total_samples
 
 
@@ -179,11 +150,11 @@ class Rubik_train_data:
             count += len(self.cubes[i])
         return count
 
-    def linearlize_data(self):
+    def flatten_data(self):
         for i in self.cubes:
             self.data[i] = set()
             for j in self.cubes[i]:
-                self.data[i].add(tuple(j.get_lin_face_data()))
+                self.data[i].add(tuple(j.get_flat_face_data()))
             self.cubes[i] = None
 
     def get_net_inputs(self):
@@ -211,14 +182,14 @@ class Rubik_train_data:
         print(len(result))
         return result
 
-def gen_data(max_depth=20, max_states=1000, debug=True):
+def gen_data(max_depth, max_states, path, debug):
     data = Rubik_train_data(3, max_depth, max_states)
 
     cubes = data.prepare_data(debug=debug)
     print(f"Generated {cubes} data points")
 
-    data_purged = data.cleanup_data(debug=debug)
-    print(f"Got rid of {data_purged} data points")
+    # data_purged = data.cleanup_data(debug=debug)
+    # print(f"Got rid of {data_purged} data points")
 
     #data_expanded = data.expand_data()
     #print(f"Generated {data_expanded} new data points")
@@ -226,9 +197,7 @@ def gen_data(max_depth=20, max_states=1000, debug=True):
     #data_purged = data.cleanup_data()
     #print(f"Got rid of {data_purged} data points after expanding the data")
 
-    data.linearlize_data()    
-
-    path = str(Path(__file__).resolve().parent) + "/"
+    data.flatten_data()    
 
     inputs = data.get_net_inputs()
     
@@ -250,9 +219,22 @@ def gen_data(max_depth=20, max_states=1000, debug=True):
             file_targ.write(i)
             file_targ.write("\n")
 
-if __name__ == '__main__':
+def generate_data(max_depth, max_states, path, debug):
     # Go crazy with the amount of data, you can take a subset of the total data after that
     start = time.time()
-    gen_data(20, 500000)
+    gen_data(max_depth, max_states, path=path, debug=debug)
     end = time.time()
     print(f"Time spent: {end-start}")
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-p", "--path", default="./data/")
+    parser.add_argument("-d", "--debug", action="store_true")
+    parser.add_argument("-m", "--max_depth", type=int, default=20)
+    parser.add_argument("-s", "--max_states", type=int, default=1000000)
+    args = parser.parse_args()
+
+    generate_data(args.max_depth, args.max_states, args.path, args.debug)
+
+if __name__ == '__main__':
+    main()
